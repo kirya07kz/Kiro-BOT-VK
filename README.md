@@ -42,14 +42,22 @@ Kiro Bot — это мощное решение для автоматизаци�
 ## 📱 Интерфейс и Мониторинг
 
 <p align="center">
-  <img src="screenshots/1.jpg" width="32%" />
-  <img src="screenshots/4.jpg" width="32%" />
-  <img src="screenshots/3.jpg" width="32%" />
+  <img src="screenshots/02.jpg" width="32%" />
+  <img src="screenshots/03.jpg" width="32%" />
+  <img src="screenshots/04.jpg" width="32%" />
 </p>
 <p align="center">
-  <img src="screenshots/2.jpg" width="32%" />
-  <img src="screenshots/5.jpg" width="32%" />
-  <img src="screenshots/6.jpg" width="32%" />
+  <img src="screenshots/05.jpg" width="32%" />
+  <img src="screenshots/06.jpg" width="32%" />
+  <img src="screenshots/07.jpg" width="32%" />
+</p>
+<p align="center">
+  <img src="screenshots/08.jpg" width="32%" />
+  <img src="screenshots/09.jpg" width="32%" />
+  <img src="screenshots/10.jpg" width="32%" />
+</p>
+<p align="center">
+  <img src="screenshots/11.jpg" width="32%" />
 </p>
 
 - **Редактор ответов:** Удобное добавление и редактирование правил с поддержкой вложений.
@@ -66,7 +74,7 @@ Kiro Bot — это мощное решение для автоматизаци�
 3. **Запустите:** Нажмите кнопку "Запустить бота" на главном экране.
 
 > [!TIP]
-> Для стабильной работы в фоне разрешите приложению "Автозапуск" и отключите ограничения экономии энергии в настройках Android.
+ > Для стабильной работы в фоне разрешите приложению "Автозапуск" и отключите ограничения экономии энергии в настройках Android.
 
 ---
 
