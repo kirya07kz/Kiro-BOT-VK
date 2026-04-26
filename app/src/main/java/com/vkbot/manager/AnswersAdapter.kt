@@ -2,17 +2,17 @@ package com.vkbot.manager
 
 import android.text.util.Linkify
 import android.view.LayoutInflater
-import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
+import androidx.core.content.ContextCompat
+import androidx.recyclerview.widget.DiffUtil
+import androidx.core.view.isVisible
 import com.vkbot.manager.databinding.ItemAnswerBinding
 import com.vkbot.manager.botbrain.AnswerElement
 
 class AnswersAdapter(
     private val onEditClick: (AnswerElement) -> Unit,
-    private val onDeleteClick: (AnswerElement) -> Unit,
     private val onSelectionModeChanged: (Boolean) -> Unit = {},
-    // НОВОЕ: Колбэк для обновления счетчика при каждом клике
     private val onSelectionUpdate: () -> Unit = {} 
 ) : RecyclerView.Adapter<AnswersAdapter.AnswerViewHolder>() {
     
@@ -21,40 +21,38 @@ class AnswersAdapter(
     private var selectionMode = false
     
     fun updateAnswers(newAnswers: List<AnswerElement>) {
+        val diffCallback = AnswerDiffCallback(answers, newAnswers)
+        val diffResult = DiffUtil.calculateDiff(diffCallback)
         answers = newAnswers
-        notifyDataSetChanged()
+        diffResult.dispatchUpdatesTo(this)
     }
     
     fun setSelectionMode(enabled: Boolean) {
+        if (selectionMode == enabled) return
+        
         selectionMode = enabled
         if (!enabled) {
             selectedItems.clear()
         }
         onSelectionModeChanged(enabled)
-        notifyDataSetChanged()
+        notifyItemRangeChanged(0, itemCount)
     }
     
-    fun isSelectionMode() = selectionMode
+    val isSelectionMode get() = selectionMode
     
     fun getSelectedItems(): List<AnswerElement> {
-        return answers.filter { selectedItems.contains(it.getId()) }
+        return answers.filter { selectedItems.contains(it.id) }
     }
     
-    fun getSelectedCount() = selectedItems.size
+    val selectedCount get() = selectedItems.size
+    
+    fun getItemAt(position: Int): AnswerElement = answers[position]
     
     fun selectAll() {
         selectedItems.clear()
-        selectedItems.addAll(answers.map { it.getId() })
-        notifyDataSetChanged()
-        onSelectionUpdate() // Обновляем счетчик
-    }
-    
-    // Исправил: Раньше метод назывался clearSelection, но не выключал режим
-    // Если нужно просто снять выделение, но остаться в режиме:
-    fun clearSelection() {
-        selectedItems.clear()
-        notifyDataSetChanged()
-        onSelectionUpdate() // Обновляем счетчик
+        selectedItems.addAll(answers.map { it.id })
+        notifyItemRangeChanged(0, itemCount)
+        onSelectionUpdate() 
     }
     
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): AnswerViewHolder {
@@ -63,97 +61,116 @@ class AnswersAdapter(
     }
     
     override fun onBindViewHolder(holder: AnswerViewHolder, position: Int) {
-        holder.bind(answers[position])
+        val answer = answers[position]
+        holder.bind(
+            answer = answer,
+            onEditClick = onEditClick,
+            onLongClick = { item ->
+                if (!selectionMode) {
+                    setSelectionMode(true)
+                    toggleSelection(item.id)
+                }
+            },
+            selectionMode = selectionMode,
+            isSelected = answer.id in selectedItems,
+            toggleSelection = this::toggleSelection
+        )
     }
     
     override fun getItemCount(): Int = answers.size
     
-    inner class AnswerViewHolder(private val binding: ItemAnswerBinding) : RecyclerView.ViewHolder(binding.root) {
+    private fun toggleSelection(id: Long) {
+        if (id in selectedItems) {
+            selectedItems.remove(id)
+        } else {
+            selectedItems.add(id)
+        }
+        // Находим позицию элемента для точечного обновления
+        val index = answers.indexOfFirst { it.id == id }
+        if (index != -1) {
+            notifyItemChanged(index)
+        }
+        onSelectionUpdate()
+    }
+    
+    class AnswerViewHolder(private val binding: ItemAnswerBinding) : RecyclerView.ViewHolder(binding.root) {
         
-        fun bind(answer: AnswerElement) {
-            binding.tvQuestion.text = answer.getQuestionText()
+        fun bind(
+            answer: AnswerElement,
+            onEditClick: (AnswerElement) -> Unit,
+            onLongClick: (AnswerElement) -> Unit,
+            selectionMode: Boolean,
+            isSelected: Boolean,
+            toggleSelection: (Long) -> Unit
+        ) {
+            val context = itemView.context
             
-            val answerText = answer.getAnswerText()
+            binding.tvQuestion.text = answer.questionText
+            
+            val answerText = answer.answerText
             if (answerText.isEmpty()) {
-                binding.tvAnswer.text = "(только вложения)"
-                // Используй ContextCompat или context.getColor напрямую, но лучше безопасно
-                binding.tvAnswer.setTextColor(itemView.context.getColor(R.color.text_low))
+                binding.tvAnswer.text = context.getString(R.string.only_attachments)
+                binding.tvAnswer.setTextColor(ContextCompat.getColor(context, R.color.text_low))
             } else {
                 binding.tvAnswer.text = answerText
-                binding.tvAnswer.setTextColor(itemView.context.getColor(R.color.text_medium))
+                binding.tvAnswer.setTextColor(ContextCompat.getColor(context, R.color.text_medium))
                 
-                // Исправление: Очищаем предыдущие ссылки перед добавлением новых
-                // Удаляем все существующие ссылки, устанавливая текст заново
-                val text = binding.tvAnswer.text
-                binding.tvAnswer.text = text // Сбрасываем ссылки
+                // Переустановка текста для сброса Linkify
+                val currentText = binding.tvAnswer.text
+                binding.tvAnswer.text = currentText
                 Linkify.addLinks(binding.tvAnswer, Linkify.WEB_URLS)
             }
             
-            // Если Linkify съедает клики по тексту (не по ссылке), можно форсировать клик по родителю:
             binding.tvAnswer.setOnClickListener { 
-                if (!selectionMode) onEditClick(answer) else toggleSelection(answer.getId())
+                if (!selectionMode) onEditClick(answer) else toggleSelection(answer.id)
             }
             
-            val attachments = answer.getAnswerAttachments()
+            val attachments = answer.answerAttachments
             if (attachments.isNotEmpty()) {
                 val attachmentsStr = attachments.joinToString("\n") { 
                     "https://vk.com/${it.toVkString()}"
                 }
-                binding.tvAttachments.text = "📎 Вложения:\n$attachmentsStr"
-                binding.tvAttachments.visibility = View.VISIBLE
+                binding.tvAttachments.text = context.getString(R.string.attachments_label_format, attachmentsStr)
+                binding.tvAttachments.isVisible = true
             } else {
-                binding.tvAttachments.visibility = View.GONE
+                binding.tvAttachments.isVisible = false
             }
             
-            binding.checkboxSelect.visibility = if (selectionMode) View.VISIBLE else View.GONE
-            binding.checkboxSelect.isChecked = selectedItems.contains(answer.getId())
-            
-            binding.btnEdit.visibility = if (selectionMode) View.GONE else View.VISIBLE
-            binding.btnDelete.visibility = if (selectionMode) View.GONE else View.VISIBLE
+            binding.checkboxSelect.isVisible = selectionMode
+            binding.checkboxSelect.isChecked = isSelected
             
             binding.root.setOnClickListener {
                 if (selectionMode) {
-                    toggleSelection(answer.getId())
+                    toggleSelection(answer.id)
                 } else {
                     onEditClick(answer)
                 }
             }
             
             binding.root.setOnLongClickListener {
-                if (!selectionMode) {
-                    selectionMode = true
-                    // ИСПРАВЛЕНИЕ: Не вызываем toggleSelection здесь, чтобы избежать двойного notify
-                    selectedItems.add(answer.getId())
-                    
-                    onSelectionModeChanged(true)
-                    onSelectionUpdate() // Сразу сообщаем о 1 выбранном элементе
-                    notifyDataSetChanged() // Перерисовываем всё (появляются чекбоксы)
-                }
+                onLongClick(answer)
                 true
             }
             
             binding.checkboxSelect.setOnClickListener {
-                toggleSelection(answer.getId())
+                toggleSelection(answer.id)
             }
-            
-            binding.btnEdit.setOnClickListener { onEditClick(answer) }
-            binding.btnDelete.setOnClickListener { onDeleteClick(answer) }
+        }
+    }
+
+    private class AnswerDiffCallback(
+        private val oldList: List<AnswerElement>,
+        private val newList: List<AnswerElement>
+    ) : DiffUtil.Callback() {
+        override fun getOldListSize(): Int = oldList.size
+        override fun getNewListSize(): Int = newList.size
+        
+        override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
+            return oldList[oldItemPosition].id == newList[newItemPosition].id
         }
         
-        private fun toggleSelection(id: Long) {
-            // ИСПРАВЛЕНИЕ: Защита от краша при быстрой анимации
-            val pos = adapterPosition
-            if (pos == RecyclerView.NO_POSITION) return
-
-            if (selectedItems.contains(id)) {
-                selectedItems.remove(id)
-            } else {
-                selectedItems.add(id)
-            }
-            // Обновляем только этот элемент
-            notifyItemChanged(pos)
-            // ИСПРАВЛЕНИЕ: Обязательно сообщаем фрагменту, что число изменилось
-            onSelectionUpdate()
+        override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
+            return oldList[oldItemPosition] == newList[newItemPosition]
         }
     }
 }

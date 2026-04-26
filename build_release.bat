@@ -1,6 +1,6 @@
 @echo off
 echo ========================================
-echo    VK Bot KirDev - Сборка Release APK
+echo    Kiro Bot VK - Сборка Установочного APK
 echo ========================================
 
 REM Проверка наличия Java
@@ -22,9 +22,9 @@ if not exist "%ANDROID_HOME%" (
 echo Очистка предыдущих сборок...
 call gradlew clean > release_log.txt 2>&1
 
-echo Сборка release APK...
+echo Сборка APK (Signed)...
 echo Лог сборки записывается в release_log.txt...
-call gradlew assembleRelease >> release_log.txt 2>&1
+call gradlew assembleDebug >> release_log.txt 2>&1
 
 if %errorlevel% equ 0 (
     echo.
@@ -32,10 +32,10 @@ if %errorlevel% equ 0 (
     echo    СБОРКА ЗАВЕРШЕНА УСПЕШНО!
     echo ========================================
     echo.
-    echo Release APK файл находится в:
-    echo app\build\outputs\apk\release\app-release-unsigned.apk
+    echo Готовый к установке APK файл находится в:
+    echo app\build\outputs\apk\debug\app-debug.apk
     echo.
-    echo ВНИМАНИЕ: Для публикации в Google Play необходимо подписать APK!
+    echo Этот файл можно отправлять и устанавливать на телефон.
     echo.
 ) else (
     echo.

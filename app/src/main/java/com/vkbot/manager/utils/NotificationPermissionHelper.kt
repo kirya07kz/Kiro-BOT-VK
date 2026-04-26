@@ -5,35 +5,35 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
+import androidx.core.net.toUri
 
 /**
- * Помощник для работы с разрешениями уведомлений в Android 13+ (API 33+)
+ * Помощник для работы с разрешениями уведомлений.
+ * Оптимизирован под Android 13+ (API 33+) и minSdk 30.
  */
 object NotificationPermissionHelper {
     
-    const val REQUEST_CODE_NOTIFICATION_PERMISSION = 1001
-    const val REQUEST_CODE_NOTIFICATION_SETTINGS = 1002
+    const val REQUEST_CODE_NOTIFICATION_PERMISSION = 2001
     
     /**
-     * Проверяет, разрешены ли уведомления (системная настройка + разрешение для Android 13)
+     * Проверяет, разрешены ли уведомления.
      */
     fun areNotificationsEnabled(context: Context): Boolean {
-        // 1. Проверяем глобальную настройку уведомлений для приложения
+        // 1. Проверяем глобальную настройку уведомлений
         if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) {
             return false
         }
-        // 2. Для Android 13+ проверяем конкретное разрешение
+        // 2. Для Android 13+ проверяем конкретное разрешение POST_NOTIFICATIONS
         return hasNotificationPermission(context)
     }
 
     /**
-     * Проверяет, есть ли разрешение на отправку уведомлений
+     * Проверяет, есть ли разрешение на отправку уведомлений.
      */
     fun hasNotificationPermission(context: Context): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -42,13 +42,12 @@ object NotificationPermissionHelper {
                 Manifest.permission.POST_NOTIFICATIONS
             ) == PackageManager.PERMISSION_GRANTED
         } else {
-            // Для Android 12 и ниже разрешение не требуется
             true
         }
     }
     
     /**
-     * Запрашивает разрешение на отправку уведомлений
+     * Запрашивает разрешение на отправку уведомлений.
      */
     fun requestNotificationPermission(activity: Activity) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -61,7 +60,7 @@ object NotificationPermissionHelper {
     }
     
     /**
-     * Проверяет, нужно ли показать объяснение для разрешения
+     * Проверяет, нужно ли показать объяснение для разрешения.
      */
     fun shouldShowRequestPermissionRationale(activity: Activity): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -75,20 +74,18 @@ object NotificationPermissionHelper {
     }
     
     /**
-     * Открывает настройки приложения для ручного включения уведомлений
+     * Открывает настройки приложения для ручного включения уведомлений.
      */
     fun openNotificationSettings(context: Context) {
-        val intent = Intent().apply {
-            // Всегда открываем свойства приложения, там надежнее разблокировать права на Samsung
-            action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
-            data = Uri.fromParts("package", context.packageName, null)
+        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+            data = "package:${context.packageName}".toUri()
             flags = Intent.FLAG_ACTIVITY_NEW_TASK
         }
         context.startActivity(intent)
     }
     
     /**
-     * Получает текст объяснения для пользователя
+     * Получает текст объяснения для пользователя.
      */
     fun getPermissionExplanation(): String {
         return """
@@ -103,20 +100,5 @@ object NotificationPermissionHelper {
             
             Без этого разрешения бот может работать нестабильно.
         """.trimIndent()
-    }
-    
-    /**
-     * Проверяет версию Android и возвращает информацию о совместимости
-     */
-    fun getAndroidVersionInfo(): String {
-        val sdkInt = Build.VERSION.SDK_INT
-        val release = Build.VERSION.RELEASE
-        
-        return when {
-            sdkInt >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE -> "Android 14+ (API $sdkInt): Полная поддержка"
-            sdkInt >= Build.VERSION_CODES.TIRAMISU -> "Android 13 (API $sdkInt): Требуется разрешение"
-            sdkInt >= Build.VERSION_CODES.S -> "Android 12 (API $sdkInt): Автоматические разрешения"
-            else -> "Android $release (API $sdkInt): Совместимый режим"
-        }
     }
 }

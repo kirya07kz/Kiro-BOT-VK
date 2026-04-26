@@ -1,38 +1,61 @@
 package com.vkbot.manager
 
-import android.graphics.Color
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import android.widget.Toast
+import androidx.core.graphics.toColorInt
 import androidx.recyclerview.widget.DiffUtil
-import androidx.recyclerview.widget.ListAdapter // Импортируем ListAdapter
+import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.vkbot.manager.databinding.ItemLogBinding
 
-// Data class оставляем
+/**
+ * Модель записи лога.
+ * Используется только id и message для отображения.
+ */
 data class LogEntry(
     val id: Long,
-    val message: String,
-    val timestamp: Long = System.currentTimeMillis()
+    val message: String
 )
 
-// Наследуемся от ListAdapter. Он сам хранит список (currentList) и управляет обновлениями
+/**
+ * Адаптер для отображения логов с использованием ListAdapter и DiffUtil.
+ * Оптимизирован для отображения большого количества данных.
+ */
 class LogsAdapter : ListAdapter<LogEntry, LogsAdapter.LogViewHolder>(LogDiffCallback()) {
 
-    // Выносим парсинг цветов в константы (оптимизация производительности)
     companion object {
-        private val COLOR_ERROR = Color.parseColor("#FF5555")
-        private val COLOR_SUCCESS = Color.parseColor("#50FA7B")
-        private val COLOR_WARNING = Color.parseColor("#FFB86C")
-        private val COLOR_DEFAULT = Color.parseColor("#F8F8F2")
+        // Оптимизация: цвета теперь парсятся один раз через KTX String.toColorInt()
+        private val COLOR_ERROR = "#FF5555".toColorInt()
+        private val COLOR_SUCCESS = "#50FA7B".toColorInt()
+        private val COLOR_WARNING = "#FFB86C".toColorInt()
+        private val COLOR_DEFAULT = "#A0A0A0".toColorInt()
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): LogViewHolder {
         val binding = ItemLogBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-        return LogViewHolder(binding)
+        return LogViewHolder(binding).apply {
+            binding.root.setOnLongClickListener {
+                // Использование adapterPosition для совместимости с текущей версией библиотеки
+                val pos = adapterPosition
+                if (pos != RecyclerView.NO_POSITION) {
+                    val logEntry = getItem(pos)
+                    val context = parent.context
+                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                    val clip = ClipData.newPlainText("log", logEntry.message)
+                    clipboard.setPrimaryClip(clip)
+                    Toast.makeText(context, R.string.log_copied_toast, Toast.LENGTH_SHORT).show()
+                }
+                true
+            }
+        }
     }
 
     override fun onBindViewHolder(holder: LogViewHolder, position: Int) {
-        holder.bind(getItem(position)) // getItem(pos) - метод ListAdapter
+        holder.bind(getItem(position))
     }
 
     class LogViewHolder(private val binding: ItemLogBinding) : RecyclerView.ViewHolder(binding.root) {
@@ -40,8 +63,7 @@ class LogsAdapter : ListAdapter<LogEntry, LogsAdapter.LogViewHolder>(LogDiffCall
         fun bind(logEntry: LogEntry) {
             binding.tvLogText.text = logEntry.message
             
-            // Логика определения цвета
-            // Используем готовые константы вместо parseColor внутри bind
+            // Раскраска логов на основе их содержимого
             val color = when {
                 isError(logEntry.message) -> COLOR_ERROR
                 isSuccess(logEntry.message) -> COLOR_SUCCESS
@@ -51,34 +73,28 @@ class LogsAdapter : ListAdapter<LogEntry, LogsAdapter.LogViewHolder>(LogDiffCall
             binding.tvLogText.setTextColor(color)
         }
 
-        // Вынесли логику проверки в отдельные методы для читаемости
         private fun isError(msg: String): Boolean {
             return msg.contains("❌") || msg.contains("💥") || 
-                   msg.contains("Ошибка", true) || msg.contains("Error", true) ||
-                   msg.contains("недействителен", true) || msg.contains("Критическая", true)
+                   msg.contains("Ошибка", ignoreCase = true) || 
+                   msg.contains("Error", ignoreCase = true) ||
+                   msg.contains("недействителен", ignoreCase = true) || 
+                   msg.contains("Критическая", ignoreCase = true)
         }
 
         private fun isSuccess(msg: String): Boolean {
             return msg.contains("✅") || msg.contains("🎯") || 
-                   msg.contains("успешно", true) || msg.contains("готов", true)
+                   msg.contains("успешно", ignoreCase = true) || 
+                   msg.contains("готов", ignoreCase = true)
         }
 
         private fun isWarning(msg: String): Boolean {
             return msg.contains("⚠️") || msg.contains("🔍") || 
-                   msg.contains("Проверка", true)
+                   msg.contains("Проверка", ignoreCase = true)
         }
     }
 
-    // DiffCallback теперь отдельный класс или компаньон
-    class LogDiffCallback : DiffUtil.ItemCallback<LogEntry>() {
-        override fun areItemsTheSame(oldItem: LogEntry, newItem: LogEntry): Boolean {
-            // Сравниваем по ID (если ID всегда уникален)
-            return oldItem.id == newItem.id
-        }
-
-        override fun areContentsTheSame(oldItem: LogEntry, newItem: LogEntry): Boolean {
-            // Data class автоматически реализует equals(), так что это сработает
-            return oldItem == newItem
-        }
+    private class LogDiffCallback : DiffUtil.ItemCallback<LogEntry>() {
+        override fun areItemsTheSame(oldItem: LogEntry, newItem: LogEntry): Boolean = oldItem.id == newItem.id
+        override fun areContentsTheSame(oldItem: LogEntry, newItem: LogEntry): Boolean = oldItem == newItem
     }
 }

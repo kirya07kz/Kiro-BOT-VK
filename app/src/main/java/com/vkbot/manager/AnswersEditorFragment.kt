@@ -1,5 +1,7 @@
 package com.vkbot.manager
 
+import android.content.res.ColorStateList
+
 import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
@@ -14,11 +16,24 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.core.content.ContextCompat
 import com.vkbot.manager.databinding.FragmentAnswersEditorBinding
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.text.Editable
+import android.text.TextWatcher
+import android.util.Log
+import androidx.activity.OnBackPressedCallback
+import androidx.recyclerview.widget.ItemTouchHelper
+import androidx.recyclerview.widget.RecyclerView
+import androidx.core.view.isVisible
+import androidx.core.graphics.toColorInt
+import java.io.File
 import com.vkbot.manager.botbrain.AndroidFileManager
 import com.vkbot.manager.botbrain.AnswerElement
 import com.vkbot.manager.botbrain.Attachment
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -31,6 +46,7 @@ class AnswersEditorFragment : Fragment() {
     private lateinit var answersAdapter: AnswersAdapter
     private lateinit var fileManager: AndroidFileManager
     private var allAnswers = mutableListOf<AnswerElement>()
+    private var searchJob: Job? = null
     
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -53,20 +69,19 @@ class AnswersEditorFragment : Fragment() {
             loadAnswers()
             setupBackPressHandler()
         } catch (e: Exception) {
-            android.util.Log.e("AnswersEditor", "❌ CRASH in onViewCreated: ${e.message}", e)
+            Log.e("AnswersEditor", "❌ CRASH in onViewCreated: ${e.message}", e)
             Toast.makeText(requireContext(), "Ошибка инициализации: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
     
     private fun setupBackPressHandler() {
-        requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner, object : androidx.activity.OnBackPressedCallback(true) {
+        requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                if (answersAdapter.isSelectionMode()) {
+                if (answersAdapter.isSelectionMode) {
                     exitSelectionMode()
                 } else {
                     isEnabled = false
-                    // Лучше вызывать через activity, так безопаснее
-                    activity?.onBackPressed()
+                    requireActivity().onBackPressedDispatcher.onBackPressed()
                 }
             }
         })
@@ -75,19 +90,74 @@ class AnswersEditorFragment : Fragment() {
     private fun setupRecyclerView() {
         answersAdapter = AnswersAdapter(
             onEditClick = { answer -> 
-                if (!answersAdapter.isSelectionMode()) {
+                if (!answersAdapter.isSelectionMode) {
                     showEditDialog(answer)
                 }
             },
-            onDeleteClick = { answer -> showDeleteDialog(answer) },
-            onSelectionModeChanged = { enabled -> updateSelectionPanel() },
-            onSelectionUpdate = { updateSelectionPanel() } // <-- Добавили это
+            onSelectionModeChanged = { _ -> updateSelectionPanel() },
+            onSelectionUpdate = { updateSelectionPanel() }
         )
         
         binding.recyclerViewAnswers.apply {
             adapter = answersAdapter
             layoutManager = LinearLayoutManager(requireContext())
         }
+        
+        // НОВОЕ: Настройка свайпов
+        val swipeHandler = object : ItemTouchHelper.SimpleCallback(
+            0, ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT
+        ) {
+            override fun onMove(r: RecyclerView, v: RecyclerView.ViewHolder, t: RecyclerView.ViewHolder) = false
+
+            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+                val pos = viewHolder.adapterPosition
+                if (pos == RecyclerView.NO_POSITION) return
+                
+                if (answersAdapter.isSelectionMode) {
+                    answersAdapter.notifyItemChanged(pos)
+                    return
+                }
+                
+                val answer = answersAdapter.getItemAt(pos)
+                answersAdapter.notifyItemChanged(pos) // Возвращаем визуально на место
+                
+                if (direction == ItemTouchHelper.LEFT) {
+                    showDeleteDialog(answer)
+                } else if (direction == ItemTouchHelper.RIGHT) {
+                    showEditDialog(answer)
+                }
+            }
+            
+            override fun onChildDraw(c: Canvas, recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, dX: Float, dY: Float, actionState: Int, isCurrentlyActive: Boolean) {
+                val itemView = viewHolder.itemView
+                val context = recyclerView.context
+                
+                if (actionState == ItemTouchHelper.ACTION_STATE_SWIPE) {
+                    val p = Paint()
+                    if (dX > 0) {
+                        p.color = "#4CAF50".toColorInt()
+                        c.drawRect(itemView.left.toFloat(), itemView.top.toFloat(), itemView.left + dX, itemView.bottom.toFloat(), p)
+                        val icon = ContextCompat.getDrawable(context, R.drawable.ic_edit)
+                        icon?.let {
+                            val margin = (itemView.height - it.intrinsicHeight) / 2
+                            it.setBounds(itemView.left + margin, itemView.top + margin, itemView.left + margin + it.intrinsicWidth, itemView.bottom - margin)
+                            it.draw(c)
+                        }
+                    } else if (dX < 0) {
+                        p.color = "#F44336".toColorInt()
+                        c.drawRect(itemView.right + dX, itemView.top.toFloat(), itemView.right.toFloat(), itemView.bottom.toFloat(), p)
+                        val icon = ContextCompat.getDrawable(context, R.drawable.ic_delete)
+                        icon?.let {
+                            val margin = (itemView.height - it.intrinsicHeight) / 2
+                            it.setBounds(itemView.right - margin - it.intrinsicWidth, itemView.top + margin, itemView.right - margin, itemView.bottom - margin)
+                            it.draw(c)
+                        }
+                    }
+                }
+                super.onChildDraw(c, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive)
+            }
+        }
+        ItemTouchHelper(swipeHandler).attachToRecyclerView(binding.recyclerViewAnswers)
     }
     
     private fun setupUI() {
@@ -97,10 +167,10 @@ class AnswersEditorFragment : Fragment() {
         }
         
         // Поиск
-        binding.etSearch.addTextChangedListener(object : android.text.TextWatcher {
+        binding.etSearch.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-            override fun afterTextChanged(s: android.text.Editable?) {
+            override fun afterTextChanged(s: Editable?) {
                 filterAnswers(s.toString())
             }
         })
@@ -130,21 +200,19 @@ class AnswersEditorFragment : Fragment() {
         }
         
         // Слушаем изменения в адаптере для обновления панели
-        binding.recyclerViewAnswers.addOnScrollListener(object : androidx.recyclerview.widget.RecyclerView.OnScrollListener() {
-            override fun onScrollStateChanged(recyclerView: androidx.recyclerview.widget.RecyclerView, newState: Int) {
-                if (answersAdapter.isSelectionMode()) {
+        binding.recyclerViewAnswers.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+                if (answersAdapter.isSelectionMode) {
                     updateSelectionPanel()
                 }
             }
         })
     }
-    
     private fun updateSelectionPanel() {
-        val count = answersAdapter.getSelectedCount()
-        binding.tvSelectedCount.text = "Выбрано: $count"
-        binding.selectionPanel.visibility = if (answersAdapter.isSelectionMode()) View.VISIBLE else View.GONE
+        val count = answersAdapter.selectedCount
+        binding.tvSelectedCount.text = getString(R.string.selected_count_format, count)
+        binding.selectionPanel.isVisible = answersAdapter.isSelectionMode
     }
-    
     private fun exitSelectionMode() {
         answersAdapter.setSelectionMode(false)
         updateSelectionPanel()
@@ -152,16 +220,15 @@ class AnswersEditorFragment : Fragment() {
     
     private fun loadAnswers() {
         lifecycleScope.launch {
-            binding.progressBar.visibility = View.VISIBLE
+            binding.progressBar.isVisible = true
             
-            android.util.Log.i("AnswersEditor", "=== ЗАГРУЗКА ОТВЕТОВ (KirDev) ===")
+            Log.i("AnswersEditor", "=== ЗАГРУЗКА ОТВЕТОВ (Kiro Bot) ===")
             
             val answers = withContext(Dispatchers.IO) {
                 // ЛОГИКА АВТО-ВОССТАНОВЛЕНИЯ
-                val filesDir = requireContext().getExternalFilesDir(null) 
-                    ?: requireContext().filesDir // Фолбек на внутреннюю память
-                val mainFile = java.io.File(filesDir, "KirDev_BOT/answer.bin")
-                val backupFile = java.io.File(filesDir, "KirDev_BOT/answer.bak")
+                // Используем путь из fileManager, чтобы не дублировать логику
+                val mainFile = File(fileManager.answerFilePath)
+                val backupFile = File(mainFile.parentFile, "answer.bak")
 
                 // Также нужно будет создать эту папку, если её нет
                 if (mainFile.parentFile?.exists() == false) {
@@ -174,39 +241,39 @@ class AnswersEditorFragment : Fragment() {
                     // 1. Пробуем загрузить основной файл
                     result = fileManager.loadAnswerDatabase()
                 } catch (e: Exception) {
-                    android.util.Log.e("AnswersEditor", "❌ Ошибка чтения основного файла: ${e.message}")
+                    Log.e("AnswersEditor", "❌ Ошибка чтения основного файла: ${e.message}")
                     
                     // 2. Если ошибка, пробуем восстановить из бэкапа
                     if (backupFile.exists()) {
-                        android.util.Log.w("AnswersEditor", "⚠️ Основной файл поврежден. Восстановление из бэкапа...")
+                        Log.w("AnswersEditor", "⚠️ Основной файл поврежден. Восстановление из бэкапа...")
                         try {
                             backupFile.copyTo(mainFile, overwrite = true)
                             result = fileManager.loadAnswerDatabase()
                             withContext(Dispatchers.Main) {
-                                Toast.makeText(requireContext(), "База восстановлена из резервной копии!", Toast.LENGTH_LONG).show()
+                                Toast.makeText(requireContext(), R.string.database_restored_from_backup, Toast.LENGTH_LONG).show()
                             }
-                        } catch (e2: Exception) {
-                            android.util.Log.e("AnswersEditor", "❌ Бэкап тоже поврежден или недоступен")
+                        } catch (_: Exception) {
+                            Log.e("AnswersEditor", "❌ Бэкап тоже поврежден или недоступен")
                         }
                     }
                 }
                 result
             }
             
-            android.util.Log.i("AnswersEditor", "Загружено из файла: ${answers.size} ответов")
+            Log.i("AnswersEditor", "Загружено из файла: ${answers.size} ответов")
             
             allAnswers.clear()
             allAnswers.addAll(answers)
             answersAdapter.updateAnswers(answers)
             
-            android.util.Log.i("AnswersEditor", "allAnswers.size = ${allAnswers.size}")
-            android.util.Log.i("AnswersEditor", "answersAdapter показывает: ${answers.size}")
+            Log.i("AnswersEditor", "allAnswers.size = ${allAnswers.size}")
+            Log.i("AnswersEditor", "answersAdapter показывает: ${answers.size}")
             
-            binding.progressBar.visibility = View.GONE
-            binding.tvAnswersCount.text = "Всего ответов: ${answers.size}"
+            binding.progressBar.isVisible = false
+            binding.tvAnswersCount.text = getString(R.string.total_answers_format, answers.size)
             
             // Показываем/скрываем Empty State
-            binding.emptyState.visibility = if (answers.isEmpty()) View.VISIBLE else View.GONE
+            binding.emptyState.isVisible = answers.isEmpty()
         }
     }
     
@@ -215,49 +282,52 @@ class AnswersEditorFragment : Fragment() {
      * Поиск начинается с первых букв и не зависит от регистра
      */
     private fun filterAnswers(query: String) {
-        val filtered = if (query.isEmpty()) {
-            allAnswers
-        } else {
-            val queryLower = query.trim().lowercase()
-            
-            // Разделяем результаты по приоритетам
-            val exactMatches = mutableListOf<AnswerElement>()
-            val startsWithMatches = mutableListOf<AnswerElement>()
-            val wordStartsMatches = mutableListOf<AnswerElement>()
-            val containsMatches = mutableListOf<AnswerElement>()
-            
-            allAnswers.forEach { answer ->
-                val questionLower = answer.getQuestionText().lowercase()
+        // Отменяем предыдущий поиск, если пользователь продолжает печатать
+        searchJob?.cancel()
+        
+        // Делаем снимок списка в главном потоке, чтобы избежать ConcurrentModificationException
+        // если вдруг список изменится во время поиска
+        val snapshot = ArrayList(allAnswers)
+        
+        searchJob = lifecycleScope.launch(Dispatchers.Default) {
+            val filtered = if (query.isEmpty()) {
+                snapshot
+            } else {
+                val queryLower = query.trim().lowercase()
                 
-                // ВАЖНО: Поиск ТОЛЬКО по вопросу, НЕ по ответу!
+                // Разделяем результаты по приоритетам
+                val exactMatches = mutableListOf<AnswerElement>()
+                val startsWithMatches = mutableListOf<AnswerElement>()
+                val wordStartsMatches = mutableListOf<AnswerElement>()
+                val containsMatches = mutableListOf<AnswerElement>()
                 
-                when {
-                    // Приоритет 1: Точное совпадение вопроса
-                    questionLower == queryLower -> {
-                        exactMatches.add(answer)
-                    }
-                    // Приоритет 2: Вопрос начинается с запроса (инкрементальный поиск)
-                    questionLower.startsWith(queryLower) -> {
-                        startsWithMatches.add(answer)
-                    }
-                    // Приоритет 3: Любое слово в вопросе начинается с запроса
-                    questionStartsWithWord(questionLower, queryLower) -> {
-                        wordStartsMatches.add(answer)
-                    }
-                    // Приоритет 4: Запрос содержится где-то в вопросе
-                    questionLower.contains(queryLower) -> {
-                        containsMatches.add(answer)
+                snapshot.forEach { answer ->
+                    val questionLower = answer.questionText.lowercase()
+                    
+                    when {
+                        // Приоритет 1: Точное совпадение вопроса
+                        questionLower == queryLower -> exactMatches.add(answer)
+                        
+                        // Приоритет 2: Вопрос начинается с запроса
+                        questionLower.startsWith(queryLower) -> startsWithMatches.add(answer)
+                        
+                        // Приоритет 3: Любое слово в вопросе начинается с запроса
+                        questionStartsWithWord(questionLower, queryLower) -> wordStartsMatches.add(answer)
+                        
+                        // Приоритет 4: Запрос содержится где-то в вопросе
+                        questionLower.contains(queryLower) -> containsMatches.add(answer)
                     }
                 }
+                
+                // Объединяем результаты
+                exactMatches + startsWithMatches + wordStartsMatches + containsMatches
             }
             
-            // Объединяем результаты по приоритету
-            exactMatches + startsWithMatches + wordStartsMatches + containsMatches
+            withContext(Dispatchers.Main) {
+                answersAdapter.updateAnswers(filtered)
+                binding.emptyState.isVisible = filtered.isEmpty()
+            }
         }
-        answersAdapter.updateAnswers(filtered)
-        
-        // Показываем/скрываем Empty State
-        binding.emptyState.visibility = if (filtered.isEmpty()) View.VISIBLE else View.GONE
     }
     
     /**
@@ -279,7 +349,7 @@ class AnswersEditorFragment : Fragment() {
         } else {
             answersAdapter.updateAnswers(allAnswers) // Или показываем все
         }
-        binding.tvAnswersCount.text = "Всего ответов: ${allAnswers.size}"
+        binding.tvAnswersCount.text = getString(R.string.total_answers_format, allAnswers.size)
         // Если мы в режиме выбора, нужно обновить панель или сбросить выбор, 
         // если удаленных элементов больше нет.
         updateSelectionPanel()
@@ -291,17 +361,33 @@ class AnswersEditorFragment : Fragment() {
             val etQuestion = dialogView.findViewById<EditText>(R.id.et_question)
             val etAnswer = dialogView.findViewById<EditText>(R.id.et_answer)
             val etAttachments = dialogView.findViewById<EditText>(R.id.et_attachments)
+            val etRepetitionLimit = dialogView.findViewById<EditText>(R.id.et_repetition_limit)
+            val etRequiredContext = dialogView.findViewById<EditText>(R.id.et_required_context)
+            val etResultContext = dialogView.findViewById<EditText>(R.id.et_result_context)
             val btnCancel = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_cancel)
             val btnSave = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_save)
             val tvTitle = dialogView.findViewById<TextView>(R.id.tv_dialog_title)
             
-            tvTitle.text = "Добавить ответ"
+            tvTitle.text = getString(R.string.add_answer_title)
+            etRepetitionLimit.setText("3")
             
             val dialog = AlertDialog.Builder(requireContext())
                 .setView(dialogView)
                 .create()
             
             dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+            val btnAdvanced = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_advanced_settings)
+            val layoutAdvanced = dialogView.findViewById<View>(R.id.layout_advanced_settings)
+            
+            btnAdvanced.setOnClickListener {
+                layoutAdvanced.isVisible = !layoutAdvanced.isVisible
+                btnAdvanced.text = if (layoutAdvanced.isVisible) {
+                    getString(R.string.collapse_settings)
+                } else {
+                    getString(R.string.expand_settings)
+                }
+            }
             
             btnCancel.setOnClickListener {
                 dialog.dismiss()
@@ -309,11 +395,16 @@ class AnswersEditorFragment : Fragment() {
             
             btnSave.setOnClickListener {
                 val question = etQuestion.text.toString().trim()
-                val answer = etAnswer.text.toString().trim()
+                // Поддержка символа \ как переноса строки для удобства ввода
+                val answer = etAnswer.text.toString().trim().replace("\\", "\n")
                 val attachmentsStr = etAttachments.text.toString().trim()
+                val limitStr = etRepetitionLimit.text.toString().trim()
+                val requiredContext = etRequiredContext.text.toString().trim()
+                val resultContext = etResultContext.text.toString().trim()
+                val repetitionLimit = limitStr.toIntOrNull() ?: 0
                 
                 if (question.isEmpty()) {
-                    etQuestion.error = "Введите вопрос"
+                    etQuestion.error = getString(R.string.enter_question_error)
                     return@setOnClickListener
                 }
                 
@@ -321,18 +412,18 @@ class AnswersEditorFragment : Fragment() {
                 
                 // Проверяем: должен быть либо ответ, либо вложения
                 if (answer.isEmpty() && attachments.isEmpty()) {
-                    etAnswer.error = "Введите ответ или добавьте вложения"
-                    etAttachments.error = "Введите ответ или добавьте вложения"
+                    etAnswer.error = getString(R.string.enter_answer_or_attachments_error)
+                    etAttachments.error = getString(R.string.enter_answer_or_attachments_error)
                     return@setOnClickListener
                 }
                 
-                addAnswer(question, answer, attachments)
+                addAnswer(question, answer, attachments, repetitionLimit, requiredContext, resultContext)
                 dialog.dismiss()
             }
             
             dialog.show()
         } catch (e: Exception) {
-            android.util.Log.e("AnswersEditor", "❌ CRASH in showAddDialog: ${e.message}", e)
+            Log.e("AnswersEditor", "❌ CRASH in showAddDialog: ${e.message}", e)
             Toast.makeText(requireContext(), "Ошибка открытия диалога: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
@@ -343,20 +434,32 @@ class AnswersEditorFragment : Fragment() {
             val etQuestion = dialogView.findViewById<EditText>(R.id.et_question)
             val etAnswer = dialogView.findViewById<EditText>(R.id.et_answer)
             val etAttachments = dialogView.findViewById<EditText>(R.id.et_attachments)
+            val etRepetitionLimit = dialogView.findViewById<EditText>(R.id.et_repetition_limit)
+            val etRequiredContext = dialogView.findViewById<EditText>(R.id.et_required_context)
+            val etResultContext = dialogView.findViewById<EditText>(R.id.et_result_context)
             val btnCancel = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_cancel)
             val btnSave = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_save)
+            val btnDelete = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_delete)
             val tvTitle = dialogView.findViewById<TextView>(R.id.tv_dialog_title)
             
-            tvTitle.text = "Редактировать ответ"
+            tvTitle.text = getString(R.string.edit_answer_title)
+            btnDelete.isVisible = true
             
-            etQuestion.setText(answerElement.getQuestionText())
-            etAnswer.setText(answerElement.getAnswerText())
+            etQuestion.setText(answerElement.questionText)
+            etAnswer.setText(answerElement.answerText)
             
             // Заполняем вложения - показываем полные VK ссылки
-            val attachmentsStr = answerElement.getAnswerAttachments().joinToString("\n") { 
+            val attachmentsStr = answerElement.answerAttachments.joinToString("\n") { 
                 "https://vk.com/${it.toVkString()}"
             }
             etAttachments.setText(attachmentsStr)
+            
+            if (answerElement.repetitionLimit > 0) {
+                etRepetitionLimit.setText(answerElement.repetitionLimit.toString())
+            }
+            
+            etRequiredContext.setText(answerElement.requiredContext)
+            etResultContext.setText(answerElement.resultContext)
             
             val dialog = AlertDialog.Builder(requireContext())
                 .setView(dialogView)
@@ -364,36 +467,66 @@ class AnswersEditorFragment : Fragment() {
             
             dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
             
+            val btnAdvanced = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_advanced_settings)
+            val layoutAdvanced = dialogView.findViewById<View>(R.id.layout_advanced_settings)
+            
+            // Авто-раскрытие, если есть данные
+            if (answerElement.repetitionLimit > 0 || 
+                !answerElement.requiredContext.isNullOrEmpty() || 
+                !answerElement.resultContext.isNullOrEmpty()) {
+                layoutAdvanced.isVisible = true
+                btnAdvanced.text = getString(R.string.collapse_settings)
+            }
+
+            btnAdvanced.setOnClickListener {
+                layoutAdvanced.isVisible = !layoutAdvanced.isVisible
+                btnAdvanced.text = if (layoutAdvanced.isVisible) {
+                    getString(R.string.collapse_settings)
+                } else {
+                    getString(R.string.expand_settings)
+                }
+            }
+            
             btnCancel.setOnClickListener {
                 dialog.dismiss()
             }
             
+            btnDelete.setOnClickListener {
+                dialog.dismiss()
+                showDeleteDialog(answerElement)
+            }
+            
             btnSave.setOnClickListener {
                 val question = etQuestion.text.toString().trim()
-                val answer = etAnswer.text.toString().trim()
-                val attachmentsStr = etAttachments.text.toString().trim()
+                // Поддержка символа \ как переноса строки для удобства ввода
+                val answer = etAnswer.text.toString().trim().replace("\\", "\n")
+                val inputAttachmentsStr = etAttachments.text.toString().trim()
+                val limitStr = etRepetitionLimit.text.toString().trim()
+                val requiredContext = etRequiredContext.text.toString().trim()
+                val resultContext = etResultContext.text.toString().trim()
+                val repetitionLimit = limitStr.toIntOrNull() ?: 0
                 
                 if (question.isEmpty()) {
-                    etQuestion.error = "Введите вопрос"
+                    etQuestion.error = getString(R.string.enter_question_error)
                     return@setOnClickListener
                 }
                 
-                val attachments = parseAttachments(attachmentsStr)
+                val attachments = parseAttachments(inputAttachmentsStr)
                 
                 // Проверяем: должен быть либо ответ, либо вложения
                 if (answer.isEmpty() && attachments.isEmpty()) {
-                    etAnswer.error = "Введите ответ или добавьте вложения"
-                    etAttachments.error = "Введите ответ или добавьте вложения"
+                    etAnswer.error = getString(R.string.enter_answer_or_attachments_error)
+                    etAttachments.error = getString(R.string.enter_answer_or_attachments_error)
                     return@setOnClickListener
                 }
                 
-                updateAnswer(answerElement.getId(), question, answer, attachments)
+                updateAnswer(answerElement.id, question, answer, attachments, answerElement.usageCount, repetitionLimit, requiredContext, resultContext)
                 dialog.dismiss()
             }
             
             dialog.show()
         } catch (e: Exception) {
-            android.util.Log.e("AnswersEditor", "❌ CRASH in showEditDialog: ${e.message}", e)
+            Log.e("AnswersEditor", "❌ CRASH in showEditDialog: ${e.message}", e)
             Toast.makeText(requireContext(), "Ошибка открытия диалога: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
@@ -401,144 +534,26 @@ class AnswersEditorFragment : Fragment() {
     private fun parseAttachments(attachmentsStr: String): List<Attachment> {
         if (attachmentsStr.isEmpty()) return emptyList()
         
-        android.util.Log.i("AnswersEditor", "=== ПАРСИНГ ВЛОЖЕНИЙ ===")
-        android.util.Log.i("AnswersEditor", "Входная строка: $attachmentsStr")
+        Log.i("AnswersEditor", "=== ПАРСИНГ ВЛОЖЕНИЙ ===")
         
         val attachments = mutableListOf<Attachment>()
         val parts = attachmentsStr.split(",", "\n").map { it.trim() }
         
-        android.util.Log.i("AnswersEditor", "Разбито на ${parts.size} частей")
-        
         for (part in parts) {
             if (part.isEmpty()) continue
             
-            android.util.Log.i("AnswersEditor", "Обработка части: $part")
+            // Используем встроенный парсер Attachment, он поддерживает любые типы и access_key
+            val attachment = Attachment.parse(part)
             
-            try {
-                // Если это полная VK ссылка
-                if (part.contains("vk.com/") || part.contains("vk.ru/")) {
-                    android.util.Log.i("AnswersEditor", "Это VK ссылка, парсим...")
-                    val attachment = parseVkUrl(part)
-                    if (attachment != null) {
-                        attachments.add(attachment)
-                        android.util.Log.i("AnswersEditor", "✅ Успешно: ${attachment.toVkString()}")
-                        continue
-                    } else {
-                        android.util.Log.w("AnswersEditor", "❌ Не удалось распарсить VK ссылку")
-                    }
-                }
-                
-                // Формат: photo123_456 или video-123_456
-                android.util.Log.i("AnswersEditor", "Пробуем короткий формат...")
-                val typeEnd = part.indexOfFirst { it.isDigit() || it == '-' }
-                if (typeEnd <= 0) {
-                    android.util.Log.w("AnswersEditor", "❌ Не найден тип медиа")
-                    continue
-                }
-                
-                val type = part.substring(0, typeEnd)
-                val rest = part.substring(typeEnd)
-                val idParts = rest.split("_")
-                
-                if (idParts.size == 2) {
-                    val ownerId = idParts[0]
-                    val id = idParts[1]
-                    attachments.add(Attachment(type, id, ownerId))
-                    android.util.Log.i("AnswersEditor", "✅ Успешно (короткий формат): ${type}${ownerId}_${id}")
-                } else {
-                    android.util.Log.w("AnswersEditor", "❌ Неправильный формат ID")
-                }
-            } catch (e: Exception) {
-                android.util.Log.e("AnswersEditor", "❌ Ошибка парсинга: ${e.message}")
+            if (attachment != null) {
+                attachments.add(attachment)
+                Log.i("AnswersEditor", "✅ Распознано: ${attachment.toVkString()}")
+            } else {
+                Log.w("AnswersEditor", "❌ Не удалось распознать: $part")
             }
         }
         
-        android.util.Log.i("AnswersEditor", "Итого распарсено: ${attachments.size} вложений")
         return attachments
-    }
-    
-    private fun parseVkUrl(url: String): Attachment? {
-        try {
-            // Примеры поддерживаемых ссылок:
-            // https://vk.com/photo123_456789
-            // https://vk.com/video-123_456789
-            // https://vk.com/clip-123_456789
-            // https://vk.com/album480579338_309380555?z=photo480579338_457262774%2Falbum480579338_309380555%2Frev
-            // https://vk.ru/clip-215895094_456254541?c=1
-            // https://vk.ru/photo-163138957_457345338
-            // https://vk.com/feed?z=photo-163138957_457345339%2F63c29d55bb96a755ce
-            // https://vkvideo.ru/video-206268152_456245506
-            // https://vksport.vkvideo.ru/video-127553155_456245136
-            
-            var path = url.trim()
-            
-            // Убираем протокол
-            if (path.contains("://")) {
-                path = path.substringAfter("://")
-            }
-            
-            // Убираем домены VK
-            val vkDomains = listOf(
-                "vkvideo.ru/",
-                "vk.com/",
-                "vk.ru/",
-                "m.vk.com/",
-                "m.vk.ru/"
-            )
-            
-            for (domain in vkDomains) {
-                if (path.startsWith(domain)) {
-                    path = path.substringAfter(domain)
-                    break
-                }
-            }
-            
-            // Обрабатываем параметры запроса (z=photo..., ?c=1 и т.д.)
-            if (path.contains("?z=")) {
-                // Формат: album123_456?z=photo123_456%2Falbum...
-                val zParam = path.substringAfter("?z=")
-                path = zParam.substringBefore("%2F").substringBefore("/")
-            } else if (path.contains("?")) {
-                // Мелкое улучшение, чтобы не падать на ссылках вида vk.com/video1_2?list=...
-                // Если это параметр z=, то берем его, иначе просто отрезаем хвост,
-                // НО только если ? не является частью ID (в ВК такого обычно нет, так что ок)
-                path = path.substringBefore("?")
-            }
-            
-            // Убираем якоря (#)
-            if (path.contains("#")) {
-                path = path.substringBefore("#")
-            }
-            
-            // Декодируем URL-кодирование если есть
-            path = java.net.URLDecoder.decode(path, "UTF-8")
-            
-            // Теперь path должен быть вида: photo123_456 или video-123_456 или clip-123_456
-            if (path.isEmpty()) return null
-            
-            // Находим где начинаются цифры или минус
-            val typeEnd = path.indexOfFirst { it.isDigit() || it == '-' }
-            if (typeEnd <= 0) return null
-            
-            val type = path.substring(0, typeEnd)
-            val rest = path.substring(typeEnd)
-            
-            // Парсим owner_id и media_id
-            val idParts = rest.split("_")
-            
-            if (idParts.size < 2) {
-                android.util.Log.w("AnswersEditor", "Skipping invalid ID format")
-                return null
-            }
-            
-            val ownerId = idParts[0]
-            val id = idParts[1]
-            return Attachment(type, id, ownerId)
-        } catch (e: Exception) {
-            // Игнорируем ошибки парсинга
-        }
-        
-        return null
     }
     
     private fun showDeleteDialog(answerElement: AnswerElement) {
@@ -548,8 +563,10 @@ class AnswersEditorFragment : Fragment() {
         val btnCancel = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_cancel)
         val btnDelete = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_delete)
         
-        tvTitle.text = "Удалить ответ?"
-        tvMessage.text = "Вопрос: ${answerElement.getQuestionText()}"
+        btnDelete.text = getString(R.string.delete)
+        
+        tvTitle.text = getString(R.string.delete_answer_title)
+        tvMessage.text = getString(R.string.question_format, answerElement.questionText)
         
         val dialog = AlertDialog.Builder(requireContext())
             .setView(dialogView)
@@ -562,30 +579,34 @@ class AnswersEditorFragment : Fragment() {
         }
         
         btnDelete.setOnClickListener {
-            deleteAnswer(answerElement.getId())
+            deleteAnswer(answerElement.id)
             dialog.dismiss()
         }
         
         dialog.show()
     }
     
-    private fun addAnswer(question: String, answer: String, attachments: List<Attachment>) {
+    private fun addAnswer(question: String, answer: String, attachments: List<Attachment>, repetitionLimit: Int = 0, requiredContext: String = "", resultContext: String = "") {
+        val usageCount = 0 // Используем константу, так как при добавлении всегда 0
         lifecycleScope.launch {
-            val newId = (allAnswers.maxOfOrNull { it.getId() } ?: 0) + 1
-            val newAnswer = AnswerElement(newId, question, answer, attachments)
+            val newId = (allAnswers.maxOfOrNull { it.id } ?: 0) + 1
+            val newAnswer = AnswerElement(newId, question, answer, attachments, java.util.Date(), usageCount, repetitionLimit, requiredContext, resultContext)
             
-            android.util.Log.i("AnswersEditor", "=== ДОБАВЛЕНИЕ ОТВЕТА ===")
-            android.util.Log.i("AnswersEditor", "Вопрос: $question")
-            android.util.Log.i("AnswersEditor", "Ответ: $answer")
-            android.util.Log.i("AnswersEditor", "Вложений: ${attachments.size}")
+            Log.i("AnswersEditor", "=== ДОБАВЛЕНИЕ ОТВЕТА ===")
+            Log.i("AnswersEditor", "Вопрос: $question")
+            Log.i("AnswersEditor", "Ответ: $answer")
+            Log.i("AnswersEditor", "Вложений: ${attachments.size}")
             attachments.forEach { 
-                android.util.Log.i("AnswersEditor", "  - ${it.toVkString()}")
+                Log.i("AnswersEditor", "  - ${it.toVkString()}")
             }
             
             allAnswers.add(newAnswer)
             
+            // Создаем копию списка для сохранения, чтобы избежать ConcurrentModificationException
+            val listToSave = ArrayList(allAnswers)
+            
             val saved = withContext(Dispatchers.IO) {
-                fileManager.saveAnswerDatabase(allAnswers)
+                fileManager.saveAnswerDatabase(listToSave)
             }
             
             if (!isAdded) return@launch
@@ -594,70 +615,73 @@ class AnswersEditorFragment : Fragment() {
                 // ИСПРАВЛЕНИЕ: Обновляем список с учетом поиска
                 createAutoBackup() // Создаем резервную копию
                 refreshList()
-                Toast.makeText(requireContext(), "Ответ добавлен", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), R.string.answer_added_success, Toast.LENGTH_SHORT).show()
                 reloadBotDatabase()
             } else {
-                Toast.makeText(requireContext(), "Ошибка сохранения", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), R.string.save_error, Toast.LENGTH_SHORT).show()
             }
         }
     }
     
-    private fun updateAnswer(id: Long, question: String, answer: String, attachments: List<Attachment>) {
+    private fun updateAnswer(id: Long, question: String, answer: String, attachments: List<Attachment>, usageCount: Int = 0, repetitionLimit: Int = 0, requiredContext: String = "", resultContext: String = "") {
         lifecycleScope.launch {
-            android.util.Log.i("AnswersEditor", "=== ОБНОВЛЕНИЕ ОТВЕТА ===")
-            android.util.Log.i("AnswersEditor", "ID: $id")
-            android.util.Log.i("AnswersEditor", "Вопрос: $question")
-            android.util.Log.i("AnswersEditor", "Ответ: '$answer' (длина: ${answer.length})")
-            android.util.Log.i("AnswersEditor", "Вложений: ${attachments.size}")
+            Log.i("AnswersEditor", "=== ОБНОВЛЕНИЕ ОТВЕТА ===")
+            Log.i("AnswersEditor", "ID: $id")
+            Log.i("AnswersEditor", "Вопрос: $question")
+            Log.i("AnswersEditor", "Ответ: '$answer' (длина: ${answer.length})")
+            Log.i("AnswersEditor", "Лимит повторов: $repetitionLimit")
+            Log.i("AnswersEditor", "Статистика использований: $usageCount")
+            Log.i("AnswersEditor", "Вложений: ${attachments.size}")
             attachments.forEach { 
-                android.util.Log.i("AnswersEditor", "  - ${it.toVkString()}")
+                Log.i("AnswersEditor", "  - ${it.toVkString()}")
             }
             
-            android.util.Log.i("AnswersEditor", "Размер allAnswers ДО обновления: ${allAnswers.size}")
+            Log.i("AnswersEditor", "Размер allAnswers ДО обновления: ${allAnswers.size}")
             
-            val index = allAnswers.indexOfFirst { it.getId() == id }
+            val index = allAnswers.indexOfFirst { it.id == id }
             if (index != -1) {
-                val updatedAnswer = AnswerElement(id, question, answer, attachments)
+                // Сохраняем оригинальную дату создания
+                val originalDate = allAnswers[index].createdDate
+                
+                val updatedAnswer = AnswerElement(id, question, answer, attachments, originalDate, usageCount, repetitionLimit, requiredContext, resultContext)
                 allAnswers[index] = updatedAnswer
                 
-                android.util.Log.i("AnswersEditor", "Размер allAnswers ПОСЛЕ обновления: ${allAnswers.size}")
-                android.util.Log.i("AnswersEditor", "Индекс обновленного элемента: $index")
+                Log.i("AnswersEditor", "Размер allAnswers ПОСЛЕ обновления: ${allAnswers.size}")
+                Log.i("AnswersEditor", "Индекс обновленного элемента: $index")
+                
+                // Создаем копию списка для сохранения, чтобы избежать ConcurrentModificationException
+                val listToSave = ArrayList(allAnswers)
                 
                 val saved = withContext(Dispatchers.IO) {
-                    fileManager.saveAnswerDatabase(allAnswers)
+                    fileManager.saveAnswerDatabase(listToSave)
                 }
                 
                 if (!isAdded) return@launch
                 
                 if (saved) {
-                    android.util.Log.i("AnswersEditor", "✅ Сохранение успешно")
+                    Log.i("AnswersEditor", "✅ Сохранение успешно")
                     
-                    // Перезагружаем из файла для проверки
                     createAutoBackup() // Создаем резервную копию
-                    val reloaded = withContext(Dispatchers.IO) {
-                        fileManager.loadAnswerDatabase()
-                    }
-                    android.util.Log.i("AnswersEditor", "Перезагружено из файла: ${reloaded.size} ответов")
                     
                     refreshList()
-                    Toast.makeText(requireContext(), "Ответ обновлен", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), R.string.answer_updated_success, Toast.LENGTH_SHORT).show()
                     reloadBotDatabase()
-                } else {
-                    android.util.Log.e("AnswersEditor", "❌ Ошибка сохранения")
-                    Toast.makeText(requireContext(), "Ошибка сохранения", Toast.LENGTH_SHORT).show()
                 }
             } else {
-                android.util.Log.e("AnswersEditor", "❌ Элемент с ID $id не найден!")
+                Log.e("AnswersEditor", "❌ Элемент с ID $id не найден!")
             }
         }
     }
     
     private fun deleteAnswer(id: Long) {
         lifecycleScope.launch {
-            allAnswers.removeAll { it.getId() == id }
+            allAnswers.removeAll { it.id == id }
+            
+            // Создаем копию списка для сохранения, чтобы избежать ConcurrentModificationException
+            val listToSave = ArrayList(allAnswers)
             
             val saved = withContext(Dispatchers.IO) {
-                fileManager.saveAnswerDatabase(allAnswers)
+                fileManager.saveAnswerDatabase(listToSave)
             }
             
             if (!isAdded) return@launch
@@ -665,18 +689,18 @@ class AnswersEditorFragment : Fragment() {
             if (saved) {
                 createAutoBackup() // Создаем резервную копию
                 refreshList()
-                Toast.makeText(requireContext(), "Ответ удален", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), R.string.answer_deleted_success, Toast.LENGTH_SHORT).show()
                 reloadBotDatabase()
             } else {
-                Toast.makeText(requireContext(), "Ошибка сохранения", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), R.string.save_error, Toast.LENGTH_SHORT).show()
             }
         }
     }
     
     private fun showDeleteSelectedDialog() {
-        val selectedCount = answersAdapter.getSelectedCount()
+        val selectedCount = answersAdapter.selectedCount
         if (selectedCount == 0) {
-            Toast.makeText(requireContext(), "Выберите ответы для удаления", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), R.string.select_answers_to_delete, Toast.LENGTH_SHORT).show()
             return
         }
         
@@ -686,8 +710,8 @@ class AnswersEditorFragment : Fragment() {
         val btnCancel = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_cancel)
         val btnDelete = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_delete)
         
-        tvTitle.text = "Удалить выбранные ответы?"
-        tvMessage.text = "Будет удалено ответов: $selectedCount"
+        tvTitle.text = getString(R.string.delete_selected_answers_title)
+        tvMessage.text = getString(R.string.delete_selected_answers_count_format, selectedCount)
         
         val dialog = AlertDialog.Builder(requireContext())
             .setView(dialogView)
@@ -712,11 +736,14 @@ class AnswersEditorFragment : Fragment() {
             val selectedItems = answersAdapter.getSelectedItems()
             if (selectedItems.isEmpty()) return@launch
             
-            val selectedIds = selectedItems.map { it.getId() }.toSet()
-            allAnswers.removeAll { selectedIds.contains(it.getId()) }
+            val selectedIds = selectedItems.map { it.id }.toSet()
+            allAnswers.removeAll { selectedIds.contains(it.id) }
+            
+            // Создаем копию списка для сохранения, чтобы избежать ConcurrentModificationException
+            val listToSave = ArrayList(allAnswers)
             
             val saved = withContext(Dispatchers.IO) {
-                fileManager.saveAnswerDatabase(allAnswers)
+                fileManager.saveAnswerDatabase(listToSave)
             }
             
             if (!isAdded) return@launch
@@ -724,11 +751,11 @@ class AnswersEditorFragment : Fragment() {
             if (saved) {
                 createAutoBackup() // Создаем резервную копию
                 refreshList()
-                Toast.makeText(requireContext(), "Удалено ответов: ${selectedItems.size}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), getString(R.string.deleted_answers_count_format, selectedItems.size), Toast.LENGTH_SHORT).show()
                 exitSelectionMode()
                 reloadBotDatabase()
             } else {
-                Toast.makeText(requireContext(), "Ошибка сохранения", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), R.string.save_error, Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -737,76 +764,69 @@ class AnswersEditorFragment : Fragment() {
     private suspend fun createAutoBackup() {
         withContext(Dispatchers.IO) {
             try {
-                val root = android.os.Environment.getExternalStorageDirectory().absolutePath
-                val mainFile = java.io.File(root, "KirDev_BOT/answer.bin")
-                val backupFile = java.io.File(root, "KirDev_BOT/answer.bak")
+                val mainFile = File(fileManager.answerFilePath)
+                val backupFile = File(mainFile.parentFile, "answer.bak")
                 
                 if (mainFile.exists()) {
                     mainFile.copyTo(backupFile, overwrite = true)
-                    android.util.Log.i("AnswersEditor", "✅ Auto-Backup создан: answer.bak")
+                    Log.i("AnswersEditor", "✅ Auto-Backup создан: answer.bak")
                 }
                 Unit
             } catch (e: Exception) {
-                android.util.Log.e("AnswersEditor", "❌ Ошибка создания бэкапа: ${e.message}")
+                Log.e("AnswersEditor", "❌ Ошибка создания бэкапа: ${e.message}")
             }
         }
     }
     
     private fun reloadBotDatabase() {
-        // Логируем редактирование базы данных
-        android.util.Log.i("AnswersEditor", "📝 ========================================")
-        android.util.Log.i("AnswersEditor", "📝 БАЗА ДАННЫХ ОТРЕДАКТИРОВАНА")
-        android.util.Log.i("AnswersEditor", "📝 ========================================")
-        android.util.Log.i("AnswersEditor", "📊 Количество ответов: ${allAnswers.size}")
-        android.util.Log.i("AnswersEditor", "🔄 Отправка команды перезагрузки боту...")
+        Log.i("AnswersEditor", "📝 ========================================")
+        Log.i("AnswersEditor", "📝 БАЗА ДАННЫХ ОТРЕДАКТИРОВАНА")
+        Log.i("AnswersEditor", "📊 Количество ответов: ${allAnswers.size}")
+        Log.i("AnswersEditor", "🔄 Отправка команды перезагрузки боту...")
         
-        // Отправляем команду сервису для перезагрузки базы данных
-        // Даже если бот не запущен, команда будет обработана при следующем запуске
         try {
             val intent = Intent(requireContext(), BotService::class.java)
-            intent.action = "RELOAD_DATABASE"
-            // Безопасный запуск для Android 8.0+
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                requireContext().startForegroundService(intent)
-            } else {
-                requireContext().startService(intent)
-            }
+            intent.action = BotService.ACTION_RELOAD
             
-            android.util.Log.i("AnswersEditor", "✅ Команда перезагрузки отправлена")
+            // ИСПРАВЛЕНИЕ: Используем startService вместо startForegroundService,
+            // чтобы избежать крэша ForegroundServiceDidNotStartInTimeException, 
+            // так как мы находимся в активном UI-потоке.
+            requireContext().startService(intent)
+            
+            Log.i("AnswersEditor", "✅ Команда перезагрузки отправлена")
         } catch (e: Exception) {
-            // Если сервис не может запуститься (например, нет прав на foreground), просто логируем
-            android.util.Log.e("AnswersEditor", "⚠️ Не удалось перезагрузить сервис: ${e.message}")
+            Log.e("AnswersEditor", "⚠️ Не удалось перезагрузить сервис: ${e.message}")
         }
         
-        android.util.Log.i("AnswersEditor", "📝 ========================================")
+        Log.i("AnswersEditor", "📝 ========================================")
     }
     
     private fun exportDatabase() {
         lifecycleScope.launch {
-            binding.progressBar.visibility = View.VISIBLE
+            binding.progressBar.isVisible = true
             
             val exportPath = withContext(Dispatchers.IO) {
-                if (fileManager.isFileExists()) {
+                if (fileManager.isFileExists) {
                     fileManager.exportDatabase()
                 } else {
                     null
                 }
             }
             
-            binding.progressBar.visibility = View.GONE
+            binding.progressBar.isVisible = false
             
             if (!isAdded) return@launch
             
             if (exportPath != null) {
                 Toast.makeText(
                     requireContext(), 
-                    "✅ Резервная копия создана:\n$exportPath", 
+                    getString(R.string.backup_created_success_format, exportPath), 
                     Toast.LENGTH_LONG
                 ).show()
             } else {
                 Toast.makeText(
                     requireContext(), 
-                    "❌ Ошибка создания резервной копии", 
+                    R.string.backup_error, 
                     Toast.LENGTH_SHORT
                 ).show()
             }
@@ -815,7 +835,7 @@ class AnswersEditorFragment : Fragment() {
     
     private fun importDatabase() {
         // В упрощенной версии файл уже находится в доступном месте
-        val path = fileManager.getAnswerFilePath()
+        val path = fileManager.answerFilePath
         
         val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_confirm_delete, null)
         val tvTitle = dialogView.findViewById<TextView>(R.id.tv_dialog_title)
@@ -823,10 +843,15 @@ class AnswersEditorFragment : Fragment() {
         val btnCancel = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_cancel)
         val btnDelete = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_delete)
         
-        tvTitle.text = "Импорт базы данных"
-        tvMessage.text = "Перезагрузить базу из файла?\n\n$path"
-        btnDelete.text = "Перезагрузить"
-        btnDelete.setBackgroundColor(resources.getColor(R.color.violet_primary, null))
+        tvTitle.text = getString(R.string.import_database_title)
+        tvMessage.text = getString(R.string.import_database_confirm_format, path)
+        btnDelete.text = getString(R.string.reload)
+        
+        // Делаем текст белым, а фон темно-серым (чтобы белый текст было видно и кнопка не сливалась)
+        btnDelete.backgroundTintList = ColorStateList.valueOf(
+            ContextCompat.getColor(requireContext(), R.color.bg_card_highlight)
+        )
+        btnDelete.setTextColor(ContextCompat.getColor(requireContext(), R.color.white))
         
         val dialog = AlertDialog.Builder(requireContext())
             .setView(dialogView)
@@ -850,7 +875,7 @@ class AnswersEditorFragment : Fragment() {
         loadAnswers()
         reloadBotDatabase()
         if (isAdded) {
-            Toast.makeText(requireContext(), "База перезагружена успешно", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), R.string.database_reloaded_success, Toast.LENGTH_SHORT).show()
         }
     }
     

@@ -1,9 +1,14 @@
 package com.vkbot.manager
 
+import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -11,6 +16,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.vkbot.manager.databinding.FragmentLogsBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -24,9 +30,7 @@ class LogsFragment : Fragment() {
     private var isUserScrolling = false
     private var shouldAutoScroll = true
     private var isFirstLoad = true
-    
     private var lastFileModifiedTime: Long = 0
-    private val LOG_FILE_NAME = "bot_logs.txt"
     
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -42,6 +46,70 @@ class LogsFragment : Fragment() {
         
         setupRecyclerView()
         startLogUpdates()
+        
+        binding.fabClearLogs.setOnClickListener {
+            clearLogs()
+        }
+        
+        binding.fabShareLogs.setOnClickListener {
+            shareLogs()
+        }
+    }
+    
+    private fun clearLogs() {
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.clear_logs_title)
+            .setMessage(R.string.clear_logs_confirm)
+            .setPositiveButton(R.string.delete) { _, _ ->
+                lifecycleScope.launch(Dispatchers.IO) {
+                    try {
+                        File(requireContext().filesDir, LOG_FILE_NAME).writeText("")
+                        lastFileModifiedTime = 0
+                        withContext(Dispatchers.Main) {
+                            if (isAdded) {
+                                logsAdapter.submitList(emptyList())
+                                Toast.makeText(requireContext(), R.string.clear_logs_success, Toast.LENGTH_SHORT).show()
+                                binding.emptyStateLogs.isVisible = true
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error clearing logs", e)
+                    }
+                }
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+    
+    private fun shareLogs() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val file = File(requireContext().filesDir, LOG_FILE_NAME)
+                if (!file.exists() || file.length() == 0L) {
+                    withContext(Dispatchers.Main) {
+                        if (isAdded) {
+                            Toast.makeText(requireContext(), R.string.logs_empty_error, Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                    return@launch
+                }
+                
+                val text = file.readText().takeLast(100000) // Берем последние 100к символов
+                val sendIntent = Intent().apply {
+                    action = Intent.ACTION_SEND
+                    putExtra(Intent.EXTRA_TEXT, text)
+                    type = "text/plain"
+                }
+                val shareIntent = Intent.createChooser(sendIntent, getString(R.string.share_logs_title))
+                withContext(Dispatchers.Main) {
+                    if (isAdded) {
+                        startActivity(shareIntent)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error sharing logs", e)
+            }
+        }
     }
     
     private fun setupRecyclerView() {
@@ -76,12 +144,15 @@ class LogsFragment : Fragment() {
     }
     
     private suspend fun updateLogs() = withContext(Dispatchers.IO) {
-        val file = File(requireContext().filesDir, LOG_FILE_NAME)
+        val context = context ?: return@withContext
+        val file = File(context.filesDir, LOG_FILE_NAME)
         
         if (!file.exists()) {
             withContext(Dispatchers.Main) {
-                logsAdapter.submitList(emptyList())
-                binding.emptyStateLogs.visibility = View.VISIBLE
+                if (isAdded) {
+                    logsAdapter.submitList(emptyList())
+                    binding.emptyStateLogs.isVisible = true
+                }
             }
             return@withContext
         }
@@ -95,16 +166,20 @@ class LogsFragment : Fragment() {
         val lines = try {
             file.readLines()
         } catch (e: Exception) {
-            listOf("Ошибка чтения лога: ${e.message}")
+            listOf(getString(R.string.log_read_error_format, e.message ?: ""))
         }
         
-        val logEntries = lines.mapIndexed { index, line ->
+        // ОПТИМИЗАЦИЯ: Берем только последние 500 строк, чтобы не тормозить UI
+        val recentLines = if (lines.size > 500) lines.takeLast(500) else lines
+        
+        val logEntries = recentLines.mapIndexed { index, line ->
             LogEntry(index.toLong(), line)
         }
         
         withContext(Dispatchers.Main) {
+            if (!isAdded) return@withContext
+
             if (isFirstLoad) {
-                // При первой загрузке - плавное появление всего списка
                 binding.recyclerViewLogs.alpha = 0f
                 logsAdapter.submitList(logEntries) {
                     binding.recyclerViewLogs.animate()
@@ -118,16 +193,14 @@ class LogsFragment : Fragment() {
                 }
                 isFirstLoad = false
             } else {
-                // При обновлении - мгновенное добавление без анимации
                 logsAdapter.submitList(logEntries) {
-                    // Автопрокрутка к последнему сообщению
                     if (shouldAutoScroll && !isUserScrolling && logEntries.isNotEmpty()) {
                         binding.recyclerViewLogs.scrollToPosition(logEntries.size - 1)
                     }
                 }
             }
             
-            binding.emptyStateLogs.visibility = if (logEntries.isEmpty() || (logEntries.size == 1 && logEntries[0].message.contains("Ожидание"))) View.VISIBLE else View.GONE
+            binding.emptyStateLogs.isVisible = logEntries.isEmpty() || (logEntries.size == 1 && logEntries[0].message.contains("Ожидание"))
         }
     }
     
@@ -135,7 +208,7 @@ class LogsFragment : Fragment() {
         lifecycleScope.launch {
             updateLogs()
             
-            while (true) {
+            while (isActive) {
                 delay(1000)
                 if (isAdded && _binding != null) {
                     updateLogs()
@@ -147,5 +220,10 @@ class LogsFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    companion object {
+        private const val TAG = "LogsFragment"
+        private const val LOG_FILE_NAME = "bot_logs.txt"
     }
 }

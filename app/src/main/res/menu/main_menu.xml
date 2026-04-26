@@ -3,6 +3,12 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
     
     <item
+        android:id="@+id/menu_instruction"
+        android:title="Инструкция"
+        android:icon="@drawable/ic_log"
+        app:showAsAction="never" />
+        
+    <item
         android:id="@+id/menu_about"
         android:title="@string/about_bot"
         android:icon="@drawable/ic_api"

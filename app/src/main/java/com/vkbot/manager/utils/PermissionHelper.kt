@@ -5,62 +5,51 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
-import android.os.Build
 import android.os.Environment
 import android.provider.Settings
-import androidx.core.app.ActivityCompat
+import android.widget.Toast
 import androidx.core.content.ContextCompat
+import androidx.core.net.toUri
 
 /**
- * Помощник для работы с разрешениями
+ * Помощник для работы с разрешениями.
+ * Оптимизирован под minSdk 30 (Android 11+).
  */
 object PermissionHelper {
     
     const val REQUEST_CODE_STORAGE = 1001
     const val REQUEST_CODE_MANAGE_STORAGE = 1002
     
+    /**
+     * Проверяет наличие разрешений на доступ к хранилищу.
+     * На Android 11+ используется MANAGE_EXTERNAL_STORAGE.
+     */
     fun hasStoragePermissions(context: Context): Boolean {
-        return when {
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.R -> {
-                Environment.isExternalStorageManager()
-            }
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.M -> {
-                ContextCompat.checkSelfPermission(
-                    context,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE
-                ) == PackageManager.PERMISSION_GRANTED
-            }
-            else -> true
-        }
+        // Так как minSdk 30, проверка версии не требуется
+        return Environment.isExternalStorageManager()
     }
     
+    /**
+     * Запрашивает разрешения на доступ к хранилищу.
+     */
     fun requestStoragePermissions(activity: Activity) {
-        when {
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.R -> {
-                try {
-                    val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
-                    intent.data = Uri.parse("package:${activity.packageName}")
-                    activity.startActivityForResult(intent, REQUEST_CODE_MANAGE_STORAGE)
-                } catch (e: Exception) {
-                    try {
-                        val intent = Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
-                        activity.startActivityForResult(intent, REQUEST_CODE_MANAGE_STORAGE)
-                    } catch (e2: Exception) {
-                        android.widget.Toast.makeText(
-                            activity,
-                            "Откройте Настройки → Приложения → VK Bot Manager → Разрешения",
-                            android.widget.Toast.LENGTH_LONG
-                        ).show()
-                    }
-                }
+        try {
+            val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
+                data = "package:${activity.packageName}".toUri()
             }
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.M -> {
-                ActivityCompat.requestPermissions(
-                    activity,
-                    arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE),
-                    REQUEST_CODE_STORAGE
+            activity.startActivityForResult(intent, REQUEST_CODE_MANAGE_STORAGE)
+        } catch (e: Exception) {
+            try {
+                activity.startActivityForResult(
+                    Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION),
+                    REQUEST_CODE_MANAGE_STORAGE
                 )
+            } catch (e2: Exception) {
+                Toast.makeText(
+                    activity,
+                    "Откройте Настройки → Приложения → VK Bot Manager → Разрешения",
+                    Toast.LENGTH_LONG
+                ).show()
             }
         }
     }

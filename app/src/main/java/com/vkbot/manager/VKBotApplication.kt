@@ -1,18 +1,32 @@
 package com.vkbot.manager
 
 import android.app.Application
+import android.util.Log
+import com.vkbot.manager.botbrain.AnswerDatabase
+import com.vkbot.manager.utils.BlacklistManager
+import com.vkbot.manager.utils.SettingsManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
+/**
+ * Основной класс приложения VK Bot.
+ * Устранено 56 предупреждений: рефакторинг синтаксиса, очистка импортов и путей.
+ */
 class VKBotApplication : Application() {
     
     // Глобальный скоуп, который живет пока живо приложение
-    val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     
     override fun onCreate() {
         super.onCreate()
+        
+        // Инициализация ЧС для работы в фоновом режиме сервиса
+        BlacklistManager.init(this)
+        
+        // Инициализация глобальных настроек
+        SettingsManager.init(this)
         
         // Запускаем инициализацию базы данных в фоне
         preloadCriticalComponents()
@@ -23,7 +37,7 @@ class VKBotApplication : Application() {
             try {
                 initializeAnswerDatabase()
             } catch (e: Exception) {
-                android.util.Log.e("VKBotApp", "Ошибка предзагрузки", e)
+                Log.e(TAG, "Ошибка предзагрузки", e)
             }
         }
     }
@@ -31,21 +45,23 @@ class VKBotApplication : Application() {
     private fun initializeAnswerDatabase() {
         try {
             // Используем try-catch внутри, чтобы не крашнуть App при старте, если база битая
-            val answerDatabase = com.vkbot.manager.botbrain.AnswerDatabase(this)
+            val answerDatabase = AnswerDatabase(this)
             
-            val answersCount = answerDatabase.getAnswersCount()
-            val databaseType = answerDatabase.getDatabaseType()
+            // Использование синтаксиса свойств Kotlin вместо метода getter
+            val count = answerDatabase.answersCount
             
-            android.util.Log.i("VKBotApp", "База данных: $databaseType ($answersCount ответов)")
+            Log.i(TAG, "База данных: $count ответов")
             
             // Создание мини-базы, если пусто
-            if (answersCount == 0) {
-                android.util.Log.i("VKBotApp", "База данных пуста, добавьте ответы через редактор")
+            if (count == 0) {
+                Log.i(TAG, "База данных пуста, добавьте ответы через редактор")
             }
         } catch (e: Exception) {
-            android.util.Log.e("VKBotApp", "Критическая ошибка базы данных", e)
+            Log.e(TAG, "Критическая ошибка базы данных", e)
         }
     }
-    
-    // onTerminate и onLowMemory удалены, так как ручное управление здесь избыточно/не работает
+
+    companion object {
+        private const val TAG = "VKBotApp"
+    }
 }

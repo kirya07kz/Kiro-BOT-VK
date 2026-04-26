@@ -17,3 +17,6 @@ google-services.json
 # Project specific artifacts
 release_log.txt
 *.apk
+/tmp/
+/.vscode/
+/app/release/
