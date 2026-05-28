@@ -1,0 +1,327 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_main"
+    android:padding="16dp">
+
+    <TextView
+        android:id="@+id/tv_settings_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Настройки бота"
+        android:textColor="@color/white"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="16dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_settings_title">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- 1. Имитация набора текста -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                app:cardBackgroundColor="@color/bg_card"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@+id/switch_typing"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Живое общение"
+                        android:textColor="@color/white"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="Бот будет имитировать набор текста в течение 2.5 сек, чтобы казаться живым человеком."
+                        android:textColor="@color/text_medium"
+                        android:textSize="13sp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- 2. Анти-флуд -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                app:cardBackgroundColor="@color/bg_card"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Защита от спама"
+                        android:textColor="@color/white"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="8dp"/>
+
+                    <com.google.android.material.button.MaterialButtonToggleGroup
+                        android:id="@+id/toggle_antispam_level"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:singleSelection="true"
+                        app:selectionRequired="true"
+                        android:layout_marginBottom="8dp">
+
+                        <Button
+                            android:id="@+id/btn_antispam_off"
+                            style="?attr/materialButtonOutlinedStyle"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Выкл" />
+
+                        <Button
+                            android:id="@+id/btn_antispam_normal"
+                            style="?attr/materialButtonOutlinedStyle"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Норма" />
+
+                        <Button
+                            android:id="@+id/btn_antispam_strict"
+                            style="?attr/materialButtonOutlinedStyle"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Макс" />
+                    </com.google.android.material.button.MaterialButtonToggleGroup>
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Ограничивает частоту ответов для одного пользователя, чтобы избежать зависаний и капчи."
+                        android:textColor="@color/text_medium"
+                        android:textSize="13sp"
+                        android:layout_marginBottom="12dp" />
+
+                    <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@+id/switch_autoban"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Авто-бан спамеров"
+                        android:textColor="@color/white"
+                        android:textSize="16sp"/>
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Пользователи, превысившие лимит сообщений, будут автоматически добавлены в черный список."
+                        android:textColor="@color/text_medium"
+                        android:textSize="13sp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- 3. Поведение (Fallback) -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                app:cardBackgroundColor="@color/bg_card"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Если фраза не найдена"
+                        android:textColor="@color/white"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="8dp"/>
+
+                    <com.google.android.material.button.MaterialButtonToggleGroup
+                        android:id="@+id/toggle_fallback_strategy"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:singleSelection="true"
+                        app:selectionRequired="true"
+                        android:layout_marginBottom="8dp">
+
+                        <Button
+                            android:id="@+id/btn_fallback_silent"
+                            style="?attr/materialButtonOutlinedStyle"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Молчать" />
+
+                        <Button
+                            android:id="@+id/btn_fallback_random"
+                            style="?attr/materialButtonOutlinedStyle"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Болтать" />
+
+                        <Button
+                            android:id="@+id/btn_fallback_error"
+                            style="?attr/materialButtonOutlinedStyle"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Ошибка" />
+                    </com.google.android.material.button.MaterialButtonToggleGroup>
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Выберите тактику: бот может проигнорировать неизвестную фразу, ответить случайной из базы или выдать ошибку."
+                        android:textColor="@color/text_medium"
+                        android:textSize="13sp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Кнопка расширенных настроек -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_advanced_settings"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="Развернуть расширенные настройки"
+                android:textColor="@color/text_low"
+                android:textAllCaps="false"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="8dp" />
+
+            <!-- 4. Расширенные настройки -->
+            <LinearLayout
+                android:id="@+id/layout_advanced_settings"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    app:cardBackgroundColor="@color/bg_card"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="0dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <com.google.android.material.switchmaterial.SwitchMaterial
+                            android:id="@+id/switch_mark_read"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Авто-прочтение сообщений"
+                            android:textColor="@color/white" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Бот будет сразу помечать сообщения как прочитанные, чтобы они не висели в уведомлениях."
+                            android:textColor="@color/text_medium"
+                            android:textSize="12sp"
+                            android:layout_marginBottom="8dp" />
+
+                        <com.google.android.material.switchmaterial.SwitchMaterial
+                            android:id="@+id/switch_media"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Реакция на Фото/Видео"
+                            android:textColor="@color/white" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Разрешает боту анализировать Фото и Видео. Отключите для экономии трафика."
+                            android:textColor="@color/text_medium"
+                            android:textSize="12sp"
+                            android:layout_marginBottom="8dp" />
+
+                        <com.google.android.material.switchmaterial.SwitchMaterial
+                            android:id="@+id/switch_chats"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Работа в беседах"
+                            android:textColor="@color/white" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Включает реакцию бота в многопользовательских беседах чата (требуется настройка обращения)."
+                            android:textColor="@color/text_medium"
+                            android:textSize="12sp"
+                            android:layout_marginBottom="12dp" />
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/input_chat_prefix_layout"
+                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:hint="Обращение (напр. 'Бот,')"
+                            app:boxStrokeColor="@color/text_high"
+                            app:hintTextColor="@color/text_high">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/et_chat_prefix"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:textColor="@color/white"
+                                android:maxLines="1"
+                                android:inputType="text" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <TextView
+                            android:id="@+id/tv_chat_prefix_desc"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="В беседе бот будет реагировать только если фраза начинается с этого слова (например: 'Бот, ' или 'Киро'). Запятая тоже будет учитываться."
+                            android:textColor="@color/text_medium"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+            </LinearLayout>
+
+        </LinearLayout>
+    </ScrollView>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

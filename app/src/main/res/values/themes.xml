@@ -1,0 +1,104 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Black and White Theme -->
+    <style name="Theme.VKBotManager" parent="Theme.Material3.DayNight">
+        <!-- Primary colors -->
+        <item name="colorPrimary">#FFFFFF</item>
+        <item name="colorOnPrimary">#000000</item>
+        <item name="colorPrimaryVariant">#E0E0E0</item>
+        
+        <!-- Secondary colors -->
+        <item name="colorSecondary">#FFFFFF</item>
+        <item name="colorOnSecondary">#000000</item>
+        <item name="colorSecondaryVariant">#E0E0E0</item>
+        
+        <!-- Background colors -->
+        <item name="android:colorBackground">#000000</item>
+        <item name="colorOnBackground">#FFFFFF</item>
+        
+        <!-- Surface colors -->
+        <item name="colorSurface">#1A1A1A</item>
+        <item name="colorOnSurface">#FFFFFF</item>
+        <item name="colorSurfaceVariant">#2A2A2A</item>
+        <item name="colorOnSurfaceVariant">#FFFFFF</item>
+        
+        <!-- Error colors -->
+        <item name="colorError">#FFFFFF</item>
+        <item name="colorOnError">#000000</item>
+        
+        <!-- ActionBar styling -->
+        <item name="actionBarStyle">@style/CustomActionBar</item>
+        <item name="android:actionBarStyle">@style/CustomActionBar</item>
+        
+        <!-- System bars -->
+        <item name="android:statusBarColor" tools:targetApi="l">@android:color/black</item>
+        <item name="android:navigationBarColor">@color/bg_main</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="o">false</item>
+        
+        <!-- Material components -->
+        <item name="colorControlNormal">#808080</item>
+        <item name="colorControlActivated">#FFFFFF</item>
+        <item name="colorControlHighlight">#E0E0E0</item>
+    </style>
+    
+    <!-- Custom ActionBar Style -->
+    <style name="CustomActionBar" parent="Widget.Material3.ActionBar.Solid">
+        <item name="background">@color/bg_main</item>
+        <item name="titleTextStyle">@style/CustomActionBarTitle</item>
+        <item name="elevation">0dp</item>
+    </style>
+    
+    <style name="CustomActionBarTitle" parent="TextAppearance.Material3.ActionBar.Title">
+        <item name="android:textColor">@color/white</item>
+        <item name="android:textSize">20sp</item>
+    </style>
+
+    <style name="TabLayoutStyle" parent="Widget.Material3.TabLayout">
+        <item name="tabTextColor">#808080</item>
+        <item name="tabSelectedTextColor">#FFFFFF</item>
+        <item name="tabIndicatorColor">#FFFFFF</item>
+        <item name="android:background">#1A1A1A</item>
+        <item name="tabRippleColor">#E0E0E0</item>
+    </style>
+
+    <!-- Custom MaterialButton style for consistent theming -->
+    <style name="Widget.VKBot.Button" parent="Widget.Material3.Button">
+        <item name="android:textColor">#000000</item>
+        <item name="backgroundTint">#FFFFFF</item>
+        <item name="cornerRadius">12dp</item>
+        <item name="android:elevation">8dp</item>
+        <item name="rippleColor">#E0E0E0</item>
+    </style>
+
+    <style name="Widget.VKBot.Button.Secondary" parent="Widget.VKBot.Button">
+        <item name="backgroundTint">#FFFFFF</item>
+        <item name="android:textColor">#000000</item>
+    </style>
+
+    <style name="Widget.VKBot.Button.Danger" parent="Widget.VKBot.Button">
+        <item name="backgroundTint">#FFFFFF</item>
+        <item name="android:textColor">#000000</item>
+    </style>
+
+    <!-- TextInputLayout style -->
+    <style name="Widget.VKBot.TextInputLayout" parent="Widget.Material3.TextInputLayout.OutlinedBox">
+        <item name="boxBackgroundColor">#2A2A2A</item>
+        <item name="boxStrokeColor">#FFFFFF</item>
+        <item name="hintTextColor">#FFFFFF</item>
+        <item name="android:textColorHint">#B0B0B0</item>
+        <item name="boxCornerRadiusTopStart">12dp</item>
+        <item name="boxCornerRadiusTopEnd">12dp</item>
+        <item name="boxCornerRadiusBottomStart">12dp</item>
+        <item name="boxCornerRadiusBottomEnd">12dp</item>
+    </style>
+
+    <!-- TabLayout text style -->
+    <style name="TabTextStyle" parent="TextAppearance.Design.Tab">
+        <item name="android:textSize">9sp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textStyle">normal</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:ellipsize">end</item>
+    </style>
+</resources>

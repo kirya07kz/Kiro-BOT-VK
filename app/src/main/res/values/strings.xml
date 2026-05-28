@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Kiro Bot</string>
+    <string name="title_home">Главная</string>
+    <string name="title_bots">Аккаунты</string>
+    <string name="title_editor">Редактор</string>
+    <string name="title_logs">Логи</string>
+    <string name="title_settings">Настройки</string>
+    <string name="title_blacklist">Защита</string>
+
+    <!-- MainActivity / Разрешения -->
+    <string name="permission_required_title">Необходимы разрешения</string>
+    <string name="permission_required_message">Приложению требуется доступ к хранилищу для работы с базой данных и к уведомлениям для работы в фоне.</string>
+    <string name="grant_permission">Предоставить</string>
+    <string name="exit">Выход</string>
+    <string name="storage_permission_title">Доступ к памяти</string>
+    <string name="storage_permission_message">Приложению нужен доступ к памяти (%s) для работы с базой данных ответов.</string>
+    <string name="storage_permission_granted">Разрешение на память получено</string>
+    <string name="storage_permission_denied">Разрешение на память отклонено. Бот не сможет работать.</string>
+    <string name="notifications_permission_title">Доступ к уведомлениям</string>
+    <string name="notifications_permission_granted">Разрешение на уведомления получено</string>
+    <string name="notifications_disabled_title">Уведомления отключены</string>
+    <string name="notifications_disabled_message">Уведомления отключены. Сервис может быть остановлен системой.</string>
+    
+    <string name="storage_access_granted">Доступ к папке предоставлен</string>
+    <string name="storage_access_denied">Доступ к папке отклонен</string>
+    
+    <string name="check_file_error_format">Ошибка проверки файла: %s</string>
+    <string name="file_not_found_error_format">Файл не найден: %s</string>
+    <string name="db_not_found_message_format">База ответов не найдена в папке KirDev_BOT.\n\nПуть: %s\n\nБот не сможет отвечать, пока вы не добавите базу через Редактор или вручную.</string>
+    
+    <string name="instruction_title">Инструкция</string>
+    <string name="instruction_text"><![CDATA[
+        <b>Как пользоваться ботом:</b><br><br>
+        1. Перейдите в раздел <b>Аккаунты</b> и добавьте токен вашего профиля или сообщества.<br>
+        2. В разделе <b>Редактор</b> добавьте вопросы и соответствующие им ответы.<br>
+        3. Нажмите кнопку <b>Запустить бота</b> на главном экране.<br><br>
+        <i>Важно:</i> Бот использует Android Service для работы в фоновом режиме. Разрешите приложению работу без ограничений по энергии (в настройках батареи), чтобы система не убивала сервис.
+    ]]></string>
+    
+    <string name="about_bot">О боте</string>
+    <string name="bot_description_title">О боте</string>
+    <string name="bot_description_text">Kiro Bot — интеллектуальный помощник для автоматизации ответов в ВКонтакте.\n\nРазработано для удобного управления диалогами и автоматической модерации.</string>
+
+    <string name="understood">Понятно</string>
+    <string name="cancel">Отмена</string>
+    <string name="ok">ОК</string>
+    <string name="next">Далее</string>
+    <string name="later">Позже</string>
+    <string name="allow">Разрешить</string>
+    <string name="settings">Настройки</string>
+
+    <!-- HomeFragment -->
+    <string name="status_disabled">Выключен</string>
+    <string name="status_working">Работает</string>
+    <string name="status_pending">Ожидание...</string>
+    <string name="status_running">Статус: Работает</string>
+    <string name="status_stopped">Статус: Остановлен</string>
+    
+    <string name="no_active_bots_error">Нет активных ботов: добавьте и включите хотя бы одного бота в разделе Счётчики.</string>
+    <string name="log_init_start">Инициализация сервиса...</string>
+    <string name="start_error_format">Ошибка старта: %s</string>
+    <string name="log_start_error_format">Не удалось запустить ботов: %s</string>
+    <string name="log_stop_command_sent">Отправлена команда на остановку</string>
+    <string name="stop_bot_btn">Остановить Бота</string>
+    <string name="start_bot_btn">Запустить Бота</string>
+
+    <!-- BotsFragment -->
+    <string name="max_bots_error">Максимум 5 ботов</string>
+    <string name="add_bot_title">Добавление бота</string>
+    <string name="add">Добавить</string>
+    <string name="save">Сохранить</string>
+    <string name="fill_all_fields_error">Заполните все поля</string>
+    <string name="bot_name_exists_error">Бот с таким именем уже существует</string>
+    <string name="bot_token_exists_error">Бот с таким токеном уже существует</string>
+    <string name="bot_added_success">Бот добавлен</string>
+    <string name="bot_updated_success">Бот обновлен</string>
+    <string name="edit_bot_title">Редактирование бота</string>
+    <string name="delete_bot_title">Удаление бота</string>
+    <string name="delete_bot_confirm_format">Удалить бота \"%s\"?</string>
+    <string name="delete">Удалить</string>
+    <string name="bot_deleted_success">Бот удален</string>
+    <string name="clear_stats_title">Сбросить статистику?</string>
+    <string name="clear_stats_confirm_format">Вы уверены, что хотите обнулить количество ответов у бота \"%s\"?</string>
+    <string name="reset">Сбросить</string>
+    <string name="stats_cleared_success">Статистика обнулена</string>
+    <string name="status_auto_start_on">Активен (Авто-старт)</string>
+    <string name="status_auto_start_off">Выключен</string>
+    <string name="bot_status_changed_format">Бот \"%1$s\" %2$s</string>
+    <string name="bots_counter_format">Активных аккаунтов: %d</string>
+
+    <!-- AnswersEditorFragment -->
+    <string name="selected_count_format">Выбрано: %d</string>
+    <string name="database_restored_from_backup">База восстановлена из резервной копии!</string>
+    <string name="total_answers_format">Всего ответов: %d</string>
+    <string name="add_answer_title">Добавить ответ</string>
+    <string name="expand_settings">Развернуть настройки</string>
+    <string name="collapse_settings">Свернуть настройки</string>
+    <string name="enter_question_error">Введите вопрос</string>
+    <string name="enter_answer_or_attachments_error">Введите ответ или добавьте вложения</string>
+    <string name="edit_answer_title">Редактировать ответ</string>
+    <string name="delete_answer_title">Удалить ответ?</string>
+    <string name="question_format">Вопрос: %s</string>
+    <string name="answer_added_success">Ответ добавлен</string>
+    <string name="save_error">Ошибка сохранения</string>
+    <string name="answer_updated_success">Ответ обновлен</string>
+    <string name="answer_deleted_success">Ответ удален</string>
+    <string name="delete_selected_answers_title">Удалить выбранные ответы?</string>
+    <string name="delete_selected_answers_count_format">Будет удалено ответов: %d</string>
+    <string name="deleted_answers_count_format">Удалено ответов: %d</string>
+    <string name="backup_created_success_format">Резервная копия создана:\n%s</string>
+    <string name="backup_error">Не удалось создать резервную копию</string>
+    <string name="import_database_title">Импорт базы данных:</string>
+    <string name="import_database_confirm_format">Перезаписать текущую базу из файла?\n\n%s</string>
+    <string name="reload">Перезагрузить</string>
+    <string name="database_reloaded_success">База данных успешно перезагружена</string>
+    <string name="select_answers_to_delete">Выберите ответы для удаления</string>
+
+    <!-- SettingsFragment -->
+    <string name="expand_advanced_settings">Развернуть расширенные настройки</string>
+    <string name="collapse_advanced_settings">Свернуть расширенные настройки</string>
+
+    <!-- BlacklistFragment -->
+    <string name="blacklist_user_removed_format">ID %s удален из ЧС</string>
+    <string name="enter_id_error">Введите ссылку или ID</string>
+    <string name="searching">Поиск...</string>
+    <string name="unknown_vk_id">Неизвестный VK ID</string>
+    <string name="user_not_found_error">Пользователь не найден</string>
+    <string name="vk_api_error">VK API Error</string>
+    <string name="no_bot_token_search_error">Добавьте работающего бота, чтобы искать по ссылкам</string>
+    <string name="no_token_numeric_id_error">Нет токена для поиска по имени. Введите числовой ID.</string>
+    <string name="network_error">Ошибка сети</string>
+    <string name="user_already_blacklisted_format">Пользователь %s уже в ЧС</string>
+    <string name="user_blocked_success_format">%s заблокирован</string>
+    <string name="blacklist_title_format">Система защиты (%d)</string>
+
+    <!-- Предупреждения для пользователей -->
+    <string name="warning_pipe_character">⚠️ ВАЖНО: Не используйте символ \'|\' (вертикальная черта) в ответах, это сломает базу данных!</string>
+    <string name="database_format_info">Формат базы данных: ВОПРОС|ОТВЕТ|ВЛОЖЕНИЯ\nСимвол \'|\' используется как разделитель полей.</string>
+    
+    <!-- LogsFragment -->
+    <string name="clear_logs_title">Очистить логи?</string>
+    <string name="clear_logs_confirm">Вся история работы бота будет удалена. Продолжить?</string>
+    <string name="clear_logs_success">Логи очищены</string>
+    <string name="logs_empty_error">Логи пусты!</string>
+    <string name="share_logs_title">Поделиться логами</string>
+    <string name="log_read_error_format">Ошибка чтения лога: %s</string>
+    
+    <string name="only_attachments">(только вложения)</string>
+    <string name="attachments_label_format">Вложения:\n%1$s</string>
+    <string name="blacklist_item_format">%1$s (ID: %2$d)</string>
+    
+    <!-- BotsAdapter Styles & Formatting -->
+    <string name="bot_status_running">● Включен</string>
+    <string name="bot_status_stopped">○ Выключен</string>
+    <string name="processed_messages_format">Обработано: %d</string>
+    <string name="answered_messages_format">Отвечено: %d</string>
+    <string name="uptime_format">Время: %s</string>
+    <string name="uptime_zero">Время: 00:00:00</string>
+    <string name="action_disable">Выключить</string>
+    <string name="action_enable">Включить</string>
+    <string name="token_copied_toast">Токен скопирован</string>
+    <string name="log_copied_toast">Лог скопирован</string>
+</resources>

@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_main"
+    android:fillViewport="true">
+
+<LinearLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:gravity="top">
+
+    <!-- Header Section -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="24dp">
+        
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+            
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Kiro Bot VK"
+                android:textSize="28sp"
+                android:textColor="@color/white"
+                android:fontFamily="sans-serif-black" />
+                
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Активность аккаунтов"
+                android:textSize="14sp"
+                android:textColor="@color/text_medium"
+                android:fontFamily="sans-serif-medium"
+                android:layout_marginTop="2dp" />
+        </LinearLayout>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_info"
+            style="@style/Widget.Material3.Button.IconButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            app:icon="@drawable/ic_info"
+            app:iconTint="@color/text_medium" />
+    </LinearLayout>
+
+    <!-- Секция статусов ботов (ТЕПЕРЬ СВЕРХУ) -->
+    <LinearLayout
+        android:id="@+id/ll_bots_status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Подсказка если ботов нет -->
+    <TextView
+        android:id="@+id/tv_no_bots_hint"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Нет добавленных ботов. Перейдите во вкладку «Боты» чтобы добавить."
+        android:textColor="@color/text_medium"
+        android:textSize="13sp"
+        android:visibility="gone"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Кнопка ЗАПУСК / ОСТАНОВКА -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_start_stop"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:text="ЗАПУСТИТЬ БОТА"
+        android:textSize="14sp"
+        android:textColor="@color/black"
+        android:fontFamily="sans-serif-black"
+        android:letterSpacing="0.05"
+        app:cornerRadius="16dp"
+        app:backgroundTint="@color/white"
+        app:icon="@drawable/ic_play"
+        app:iconTint="@color/black"
+        app:iconGravity="textStart"
+        android:layout_marginBottom="24dp"
+        android:elevation="0dp"
+        app:strokeWidth="1dp"
+        app:strokeColor="#FFFFFF" />
+
+    <!-- Скрывающийся блок "Инфо" -->
+    <LinearLayout
+        android:id="@+id/layout_info"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="О возможностях бота"
+            android:textColor="@color/white"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="12dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/status_chip_background"
+            android:backgroundTint="#1AFFFFFF"
+            android:padding="20dp"
+            app:cornerRadius="16dp"
+            android:layout_marginBottom="24dp">
+
+            <!-- Purpose -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="20dp">
+                
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_play"
+                    app:tint="@color/violet_accent"
+                    android:layout_marginEnd="12dp"
+                    android:layout_marginTop="2dp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+                    
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Зачем он нужен?"
+                        android:textColor="@color/white"
+                        android:textSize="15sp"
+                        android:fontFamily="sans-serif-bold"
+                        android:layout_marginBottom="4dp"/>
+                        
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Бот общается круглосуточно, поддерживает актив и создает атмосферу живого общения в ваших диалогах и сообществах."
+                        android:textColor="@color/violet_accent"
+                        android:textSize="13sp"
+                        android:lineSpacingExtra="2dp"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Capabilities -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+                
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_api"
+                    app:tint="@color/violet_accent"
+                    android:layout_marginEnd="12dp"
+                    android:layout_marginTop="2dp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+                    
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Возможности"
+                        android:textColor="@color/white"
+                        android:textSize="15sp"
+                        android:fontFamily="sans-serif-bold"
+                        android:layout_marginBottom="4dp"/>
+                        
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="• Мощная смарт-база ответов.\n• Обработка медиафайлов.\n• Стабильная работа на VK API v5.131.\n• Фоновый режим 24/7."
+                        android:textColor="@color/violet_accent"
+                        android:textSize="13sp"
+                        android:lineSpacingExtra="2dp"/>
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+
+</LinearLayout>
+</ScrollView>
+
