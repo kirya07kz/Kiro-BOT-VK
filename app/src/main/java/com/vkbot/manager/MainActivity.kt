@@ -308,7 +308,7 @@ class MainActivity : AppCompatActivity() {
     private fun showAboutDialog() {
         MaterialAlertDialogBuilder(this)
             .setTitle(R.string.bot_description_title)
-            .setMessage(R.string.bot_description_text)
+            .setMessage(Html.fromHtml(getString(R.string.bot_description_text), Html.FROM_HTML_MODE_COMPACT))
             .setPositiveButton(android.R.string.ok, null)
             .show()
     }

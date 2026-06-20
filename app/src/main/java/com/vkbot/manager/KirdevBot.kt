@@ -17,7 +17,7 @@ import java.util.concurrent.ConcurrentHashMap
  * Менеджер управления ботом VK.
  * Финальная очистка: устранено 185 оставшихся предупреждений (unused, visibility, и т.д.).
  */
-class VKBotManager(
+class KirdevBot(
     private val token: String,
     private val onLog: (String) -> Unit,
     private val onStatusUpdate: ((String) -> Unit)? = null,

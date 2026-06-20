@@ -120,7 +120,7 @@ object BotDataManager {
     private fun migrateFromExternal(context: Context, list: MutableList<Bot>) {
         try {
             @Suppress("DEPRECATION")
-            val oldDir = File(android.os.Environment.getExternalStorageDirectory(), "KirDev_BOT")
+            val oldDir = File(android.os.Environment.getExternalStorageDirectory(), "kirdev_base")
             val oldFile = File(oldDir, BOTS_FILE_NAME)
             
             if (oldFile.exists()) {

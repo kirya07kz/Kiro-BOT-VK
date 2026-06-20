@@ -37,8 +37,6 @@ class SettingsFragment : Fragment() {
 
     private fun loadSettings() {
         with(binding) {
-            switchTyping.isChecked = SettingsManager.isTypingEnabled
-            
             // Загрузка уровня анти-спама
             when {
                 !SettingsManager.isAntiSpamEnabled -> toggleAntispamLevel.check(R.id.btn_antispam_off)
@@ -55,7 +53,6 @@ class SettingsFragment : Fragment() {
                 else -> toggleFallbackStrategy.check(R.id.btn_fallback_error)
             }
             
-            switchMedia.isChecked = SettingsManager.isMediaResponsesEnabled
             switchMarkRead.isChecked = SettingsManager.isMarkAsReadEnabled
             switchChats.isChecked = SettingsManager.isChatsEnabled
             etChatPrefix.setText(SettingsManager.chatPrefix)
@@ -66,10 +63,6 @@ class SettingsFragment : Fragment() {
 
     private fun setupListeners() {
         with(binding) {
-            switchTyping.setOnCheckedChangeListener { _, isChecked ->
-                SettingsManager.isTypingEnabled = isChecked
-            }
-            
             toggleAntispamLevel.addOnButtonCheckedListener { _, checkedId, isChecked ->
                 if (isChecked) {
                     when (checkedId) {
@@ -110,18 +103,6 @@ class SettingsFragment : Fragment() {
                 }
             }
             
-            btnAdvancedSettings.setOnClickListener {
-                layoutAdvancedSettings.isVisible = !layoutAdvancedSettings.isVisible
-                btnAdvancedSettings.text = if (layoutAdvancedSettings.isVisible) {
-                    getString(R.string.collapse_advanced_settings)
-                } else {
-                    getString(R.string.expand_advanced_settings)
-                }
-            }
-
-            switchMedia.setOnCheckedChangeListener { _, isChecked ->
-                SettingsManager.isMediaResponsesEnabled = isChecked
-            }
             
             switchMarkRead.setOnCheckedChangeListener { _, isChecked ->
                 SettingsManager.isMarkAsReadEnabled = isChecked

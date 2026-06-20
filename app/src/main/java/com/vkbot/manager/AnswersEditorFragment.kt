@@ -362,8 +362,6 @@ class AnswersEditorFragment : Fragment() {
             val etAnswer = dialogView.findViewById<EditText>(R.id.et_answer)
             val etAttachments = dialogView.findViewById<EditText>(R.id.et_attachments)
             val etRepetitionLimit = dialogView.findViewById<EditText>(R.id.et_repetition_limit)
-            val etRequiredContext = dialogView.findViewById<EditText>(R.id.et_required_context)
-            val etResultContext = dialogView.findViewById<EditText>(R.id.et_result_context)
             val btnCancel = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_cancel)
             val btnSave = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_save)
             val tvTitle = dialogView.findViewById<TextView>(R.id.tv_dialog_title)
@@ -399,8 +397,6 @@ class AnswersEditorFragment : Fragment() {
                 val answer = etAnswer.text.toString().trim().replace("\\", "\n")
                 val attachmentsStr = etAttachments.text.toString().trim()
                 val limitStr = etRepetitionLimit.text.toString().trim()
-                val requiredContext = etRequiredContext.text.toString().trim()
-                val resultContext = etResultContext.text.toString().trim()
                 val repetitionLimit = limitStr.toIntOrNull() ?: 0
                 
                 if (question.isEmpty()) {
@@ -417,7 +413,7 @@ class AnswersEditorFragment : Fragment() {
                     return@setOnClickListener
                 }
                 
-                addAnswer(question, answer, attachments, repetitionLimit, requiredContext, resultContext)
+                addAnswer(question, answer, attachments, repetitionLimit)
                 dialog.dismiss()
             }
             
@@ -435,8 +431,6 @@ class AnswersEditorFragment : Fragment() {
             val etAnswer = dialogView.findViewById<EditText>(R.id.et_answer)
             val etAttachments = dialogView.findViewById<EditText>(R.id.et_attachments)
             val etRepetitionLimit = dialogView.findViewById<EditText>(R.id.et_repetition_limit)
-            val etRequiredContext = dialogView.findViewById<EditText>(R.id.et_required_context)
-            val etResultContext = dialogView.findViewById<EditText>(R.id.et_result_context)
             val btnCancel = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_cancel)
             val btnSave = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_save)
             val btnDelete = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_delete)
@@ -458,9 +452,6 @@ class AnswersEditorFragment : Fragment() {
                 etRepetitionLimit.setText(answerElement.repetitionLimit.toString())
             }
             
-            etRequiredContext.setText(answerElement.requiredContext)
-            etResultContext.setText(answerElement.resultContext)
-            
             val dialog = AlertDialog.Builder(requireContext())
                 .setView(dialogView)
                 .create()
@@ -471,9 +462,7 @@ class AnswersEditorFragment : Fragment() {
             val layoutAdvanced = dialogView.findViewById<View>(R.id.layout_advanced_settings)
             
             // Авто-раскрытие, если есть данные
-            if (answerElement.repetitionLimit > 0 || 
-                !answerElement.requiredContext.isNullOrEmpty() || 
-                !answerElement.resultContext.isNullOrEmpty()) {
+            if (answerElement.repetitionLimit > 0) {
                 layoutAdvanced.isVisible = true
                 btnAdvanced.text = getString(R.string.collapse_settings)
             }
@@ -502,8 +491,6 @@ class AnswersEditorFragment : Fragment() {
                 val answer = etAnswer.text.toString().trim().replace("\\", "\n")
                 val inputAttachmentsStr = etAttachments.text.toString().trim()
                 val limitStr = etRepetitionLimit.text.toString().trim()
-                val requiredContext = etRequiredContext.text.toString().trim()
-                val resultContext = etResultContext.text.toString().trim()
                 val repetitionLimit = limitStr.toIntOrNull() ?: 0
                 
                 if (question.isEmpty()) {
@@ -520,7 +507,7 @@ class AnswersEditorFragment : Fragment() {
                     return@setOnClickListener
                 }
                 
-                updateAnswer(answerElement.id, question, answer, attachments, answerElement.usageCount, repetitionLimit, requiredContext, resultContext)
+                updateAnswer(answerElement.id, question, answer, attachments, answerElement.usageCount, repetitionLimit, answerElement.requiredContext, answerElement.resultContext)
                 dialog.dismiss()
             }
             

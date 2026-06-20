@@ -29,39 +29,7 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <!-- 1. Имитация набора текста -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
-                app:cardBackgroundColor="@color/bg_card"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="0dp">
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
-
-                    <com.google.android.material.switchmaterial.SwitchMaterial
-                        android:id="@+id/switch_typing"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Живое общение"
-                        android:textColor="@color/white"
-                        android:textSize="18sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:text="Бот будет имитировать набор текста в течение 2.5 сек, чтобы казаться живым человеком."
-                        android:textColor="@color/text_medium"
-                        android:textSize="13sp" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
 
             <!-- 2. Анти-флуд -->
             <com.google.android.material.card.MaterialCardView
@@ -211,26 +179,7 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Кнопка расширенных настроек -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_advanced_settings"
-                style="@style/Widget.MaterialComponents.Button.TextButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:text="Развернуть расширенные настройки"
-                android:textColor="@color/text_low"
-                android:textAllCaps="false"
-                android:layout_marginTop="8dp"
-                android:layout_marginBottom="8dp" />
-
-            <!-- 4. Расширенные настройки -->
-            <LinearLayout
-                android:id="@+id/layout_advanced_settings"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:visibility="gone">
+            <!-- 4. Дополнительные настройки -->
 
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="match_parent"
@@ -261,20 +210,6 @@
                             android:textSize="12sp"
                             android:layout_marginBottom="8dp" />
 
-                        <com.google.android.material.switchmaterial.SwitchMaterial
-                            android:id="@+id/switch_media"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="Реакция на Фото/Видео"
-                            android:textColor="@color/white" />
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="Разрешает боту анализировать Фото и Видео. Отключите для экономии трафика."
-                            android:textColor="@color/text_medium"
-                            android:textSize="12sp"
-                            android:layout_marginBottom="8dp" />
 
                         <com.google.android.material.switchmaterial.SwitchMaterial
                             android:id="@+id/switch_chats"
@@ -319,7 +254,7 @@
                             android:textSize="13sp" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
-            </LinearLayout>
+
 
         </LinearLayout>
     </ScrollView>

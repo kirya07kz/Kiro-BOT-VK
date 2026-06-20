@@ -16,9 +16,7 @@ object SettingsManager {
         prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     }
 
-    var isTypingEnabled: Boolean
-        get() = prefs.getBoolean("pref_typing_enabled", true)
-        set(value) = prefs.edit().putBoolean("pref_typing_enabled", value).apply()
+    val isTypingEnabled: Boolean = true
 
     var isAntiSpamEnabled: Boolean
         get() = prefs.getBoolean("pref_antispam_enabled", true)
@@ -36,9 +34,7 @@ object SettingsManager {
         get() = prefs.getBoolean("pref_fallback_silence_enabled", false)
         set(value) = prefs.edit().putBoolean("pref_fallback_silence_enabled", value).apply()
 
-    var isMediaResponsesEnabled: Boolean
-        get() = prefs.getBoolean("pref_media_responses_enabled", true)
-        set(value) = prefs.edit().putBoolean("pref_media_responses_enabled", value).apply()
+    val isMediaResponsesEnabled: Boolean = true
         
     var isMarkAsReadEnabled: Boolean
         get() = prefs.getBoolean("pref_mark_as_read_enabled", false)

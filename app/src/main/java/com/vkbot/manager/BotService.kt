@@ -66,7 +66,7 @@ class BotService : Service() {
     private val serviceScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     
     @Volatile private var isRunning = false
-    private val vkBots = ConcurrentHashMap<Int, VKBotManager>()
+    private val vkBots = ConcurrentHashMap<Int, KirdevBot>()
     private var botBrain: BotBrain? = null
     
     private val notificationDismissReceiver = object : BroadcastReceiver() {
@@ -84,6 +84,7 @@ class BotService : Service() {
         BotNotificationHelper.createChannel(this)
         BlacklistManager.init(this)
         SettingsManager.init(this)
+        MediaResponses.init(this)
 
         val filter = IntentFilter(ACTION_NOTIFICATION_DISMISSED)
         ContextCompat.registerReceiver(
@@ -178,7 +179,7 @@ class BotService : Service() {
                 if (shouldRun && token.isNotEmpty() && !vkBots.containsKey(id)) {
                     addLog("🚀 Запуск ядра для $name...")
                     
-                    val newBot = VKBotManager(
+                    val newBot = KirdevBot(
                         token = token,
                         onLog = { logMsg ->
                                  if (!logMsg.contains("poll") && !logMsg.contains("ts") && !logMsg.contains("check")) {
@@ -248,8 +249,8 @@ class BotService : Service() {
                 sharedPrefs.edit { putLong("bot_${botId}_answered", currentAnswered + 1) }
                 
                 return mapOf(
-                    "text" to response.text(),
-                    "attachments" to response.attachments()
+                    "text" to response.text,
+                    "attachments" to response.attachments
                 )
             }
             null
@@ -328,6 +329,7 @@ class BotService : Service() {
                     val count = brain.answerDatabase?.answersCount ?: 0
                     addLog("🔄 База данных обновлена: $count ответов")
                 }
+                MediaResponses.loadAll()
             }
         }
     }
